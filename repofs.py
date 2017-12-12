@@ -12,87 +12,138 @@ from fuse import FUSE, FuseOSError, Operations
 from subprocess import check_output, CalledProcessError
 
 
-CACHE={}
+class Cache(object):
+    def __init__(self):
+        self._storage = {}
 
-def fill_cache(repo):
-    """
-    fill cache
-    cache contains 3 keys: commits, tags and branches
-    cache = {
-        commits: {
-            commitHash1: {
-                log: "log1",
-                parents: [parentHash11, parentHash12, ..., parentHash1K],
-                descendants: [descHash11, descHash12, ..., descHash1K],
-                names: [branch11, tag11, ...]
-            },
-            ...,
-            commitHashN: {
-                ...
-            }
-        },
-        tags: {
-            tagName1: commitHash1,
-            ...,
-            tagNameN: commitHashN
-        },
-        branches: {
-            branchName1: commitHash1,
-            ...,
-            branchNameN: commitHashN
-        }
-    }
-    """
-    CACHE = {
-        'commits': {},
-        'tags': {},
-        'branches': {}
-    }
+    def store_commits(self, commitNames):
+        if 'commits' not in self._storage:
+            self._storage['commits'] = {}
 
-    gitrepo = os.path.join(repo, '.git')
+        for commit in commitNames:
+            self._storage['commits'][commit] = {}
 
-    commits = check_output(['git', '--git-dir', gitrepo,\
-            'log', '--pretty=format:%H']).splitlines()
-    branchrefs = check_output(['git', '--git-dir', gitrepo, 'for-each-ref',\
-            '--format=%(objectname) %(refname)', 'refs/heads/']).splitlines()
-    tagrefs = check_output(['git', '--git-dir', gitrepo, 'for-each-ref',\
-            '--format=%(objectname) %(refname)', 'refs/tags/']).splitlines()
+    def store_commit_data(self, chash, data):
+        self._storage['commits'][chash] = data
 
-    commits = [commit.strip() for commit in commits]
-    branchrefs = [ref.strip() for ref in branchrefs]
-    tagrefs = [ref.strip() for ref in tagrefs]
+    def store_tag(self, tag, chash):
+        if 'tags' not in self._storage:
+            self._storage['tags'] = {}
 
-    for commit in commits:
-        commitLog = check_output(['git', '--git-dir', gitrepo, 'log', commit])
-        commitDict = {}
-        commitDict['log'] = commitLog
-        #commitDict['parents'] = ...
-        #commitDict['descendants'] = ...
-        commitDict['names'] = []
-        CACHE['commits'][commit] = commitDict
+        self._storage['tags'][tag] = chash
 
-    for ref in branchrefs:
-        chash, refName = ref.split(' ')
-        branchName = refName.split('/')[2]
-        CACHE['branches'][branchName] = chash
-        CACHE['commits'][chash]['names'].append(branchName)
+    def store_branch(self, branch, chash):
+        if 'branches' not in self._storage:
+            self._storage['branches'] = {}
 
-    for ref in tagrefs:
-        chash, refName = ref.split(' ')
-        tagName = refName.split('/')[2]
-        CACHE['tags'][tagName] = chash
-        CACHE['commits'][chash]['names'].append(tagName)
+        self._storage['branches'][branch] = chash
+
+    def get_commit_names(self):
+        if 'commits' not in self._storage:
+            return None
+
+        return self._storage['commits'].keys()
+
+    def get_commit_data(self, chash):
+        if 'commits' not in self._storage or\
+                chash not in self._storage['commits'] or\
+                not self._storage['commits'][chash]:
+            return None
+
+        return self._storage['commits'][chash]
+
+    def get_tags(self):
+        if 'tags' not in self._storage:
+            return None
+
+        return self._storage['tags']
+
+    def get_branches(self):
+        if 'branches' not in self._storage:
+            return None
+
+        return self._storage['branches']
+
+
+class GitOperations(object):
+    def __init__(self, repo):
+        self.repo = repo
+        self._gitrepo = os.path.join(repo, '.git')
+
+    def get_branches(self):
+        """
+        Returns branches in the form:
+        <commit_hash> refs/heads/<branchname>
+        """
+        branchrefs = check_output(['git', '--git-dir', self._gitrepo, 'for-each-ref',\
+                '--format=%(objectname) %(refname)', 'refs/heads/']).splitlines()
+        branches = [ref.strip() for ref in branchrefs]
+        return branches
+
+    def get_tags(self):
+        """
+        Returns tags in the form:
+        <commit_hash> refs/tags/<tagname>
+        """
+        tagrefs = check_output(['git', '--git-dir', self._gitrepo, 'for-each-ref',\
+                '--format=%(objectname) %(refname)', 'refs/tags/']).splitlines()
+        tags = [ref.strip() for ref in tagrefs]
+        return tags
+
+    def get_commits(self):
+        """
+        Returns a list of commit hashes
+        """
+        commits = check_output(['git', '--git-dir', self._gitrepo,\
+                'log', '--pretty=format:%H']).splitlines()
+        commits = [commit.strip() for commit in commits]
+        return commits
+
+    def get_commit_data(self):
+        """
+        Returns a dictionary containing commit data
+        Data includes log, parents, descendants, names
+        """
+        data = {}
+        data['log'] = check_output(['git', '--git-dir', self._gitrepo, 'log', commit])
+        #data['parents'] = ...
+        #data['descendants'] = ...
+        #data['names'] = ...
+        return data
+
+
+
+class RepoFS(Operations):
+    def __init__(self, repo, nocache):
+        self.repo = repo
+        self.nocache = nocache
+        self._git = GitOperations(repo)
+        if not nocache:
+            self._cache = Cache()
+
+    readdir=None
+    statfs=None
+    readlink=None
+    getattr=None
+
+    access=None
+    chmod=None
+    chown=None
+    mknod=None
+    rmdir=None
+    mkdir=None
+    unlink=None
+    symlink=None
+    rename=None
+    link=None
+    utimens=None
 
 
 def main(repo, mount, nocache):
     if not os.path.exists(os.path.join(repo, '.git')):
         raise Exception("Not a git repository")
 
-    if not nocache:
-        print "Filling cache..."
-        fill_cache(repo)
-
-    print "Ready!"
+    FUSE(RepoFS(repo, nocache), mount, nothreads=True, foreground=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -109,3 +160,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args.repo, args.mount, args.nocache)
+
