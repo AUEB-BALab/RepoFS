@@ -66,8 +66,17 @@ class RepoFS(Operations):
         return False
 
     def _get_file_size(self, path):
-        # return self._git.file_size(self._git_path(path))
-        return 0
+        # --hacky solution--
+        # doing this check because if the mount folder
+        # is inside a git repository a file /.gitignore
+        # appears on the root of the mount folder
+        if path.count("/") < 2:
+            return 0
+
+        return self._git.file_size(self._commit_from_path(path), self._git_path(path))
+
+    def _get_file_contents(self, path):
+        return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
 
     def getattr(self, path, fh=None):
         uid, gid, pid = fuse_get_context()
@@ -94,6 +103,12 @@ class RepoFS(Operations):
 
         for r in dirents:
             yield r
+
+
+    def read(self, path, size, offset, fh):
+        contents = self._get_file_contents(path)
+
+        return contents[offset:offset + size]
 
 
 
