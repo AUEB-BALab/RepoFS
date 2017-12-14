@@ -117,4 +117,4 @@ class GitOperations(object):
         if not contents:
             return 0
 
-        return len(contents.encode('utf-8'))
+        return len(contents)
