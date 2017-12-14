@@ -79,6 +79,14 @@ class RepoFS(Operations):
         return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
 
     def getattr(self, path, fh=None):
+        # --hacky solution--
+        # getattr tries to get the attributes
+        # of ".git" and "HEAD" files on every
+        # directory accessed. Still don't know
+        # the cause of this
+        if path.endswith(".git") or path.endswith("HEAD"):
+            return {}
+
         uid, gid, pid = fuse_get_context()
         st = dict(st_uid=uid, st_gid=gid)
         if self._is_dir(path):
