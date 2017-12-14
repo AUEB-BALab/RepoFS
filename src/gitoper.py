@@ -19,7 +19,7 @@ class GitOperations(object):
             branches = [ref.strip() for ref in branchrefs]
             return branches
         except CalledProcessError as e:
-            print str(e)
+            print "branches error: %s" % str(e)
             return None
 
     def tags(self):
@@ -33,7 +33,7 @@ class GitOperations(object):
             tags = [ref.strip() for ref in tagrefs]
             return tags
         except CalledProcessError as e:
-            print str(e)
+            print "tags error: %s" % str(e)
             return None
 
     def commits(self):
@@ -46,7 +46,7 @@ class GitOperations(object):
             commits = [commit.strip() for commit in commits]
             return commits
         except CalledProcessError as e:
-            print str(e)
+            print "commits error: %s" % str(e)
             return None
 
     def commit_log(self, commit):
@@ -56,7 +56,7 @@ class GitOperations(object):
         try:
             return check_output(['git', '--git-dir', self._gitrepo, 'log', commit])
         except CalledProcessError as e:
-            print str(e)
+            print "commit_log error: %s" % str(e)
             return None
 
     def commit_parents(self, commit):
@@ -92,7 +92,7 @@ class GitOperations(object):
             contents = [c.split("/")[-1] for c in contents]
             return contents
         except CalledProcessError as e:
-            print str(e)
+            print "directory_contents error: %s" % str(e)
             return None
 
     def is_dir(self, commit, path):
@@ -109,6 +109,7 @@ class GitOperations(object):
             return check_output(['git', '--git-dir', self._gitrepo, 'show',\
                     "%s:%s" % (commit, path)])
         except CalledProcessError as e:
+            print "file_contents error: %s" % str(e)
             return None
 
     def file_size(self, commit, path):
