@@ -15,7 +15,7 @@ class RepoFS(Operations):
     def __init__(self, repo, nocache):
         self.repo = repo
         self.nocache = nocache
-        self._git = GitOperations(repo)
+        self._git = GitOperations(repo, "giterr.log")
         if not nocache:
             self._cache = Cache()
 
@@ -45,11 +45,14 @@ class RepoFS(Operations):
         return path.split("/", 3)[-1]
 
     def _commit_from_path(self, path):
+        if path.count("/") < 2:
+            return ""
+
         return path.split("/")[2]
 
     def _get_commit(self, path):
         dirents = self._git.directory_contents(self._commit_from_path(path), self._git_path(path))
-        if path.count("/") == 2:
+        if path.count("/") == 2: # on the root of a commit folder
             dirents += self._commit_metadata_names()
         return dirents
 
@@ -61,30 +64,45 @@ class RepoFS(Operations):
             if path =="/commits" or path.count("/") == 2:
                 return True
             else:
+                if self._git_path(path) in self._commit_metadata_names():
+                    return False
+
                 return self._git.is_dir(self._commit_from_path(path), self._git_path(path))
 
         return False
 
     def _get_file_size(self, path):
-        # --hacky solution--
-        # doing this check because if the mount folder
-        # is inside a git repository a file /.gitignore
-        # appears on the root of the mount folder
-        if path.count("/") < 2:
+        if self._git_path(path) in self._commit_metadata_names():
             return 0
 
         return self._git.file_size(self._commit_from_path(path), self._git_path(path))
 
     def _get_file_contents(self, path):
+        if self._git_path(path) in self._commit_metadata_names():
+            return ""
+
         return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
 
+    def _path_exists(self, path):
+        if path == "/":
+            return True
+
+        if path.count("/") == 1:
+            return path.split("/")[-1] in self._get_root()
+
+        if path.count("/") == 2:
+            if path.startswith("/commits"):
+                return path.split("/")[-1] in self._get_commits()
+
+            return False
+
+        if path.count("/") == 3 and self._git_path(path) in self._commit_metadata_names():
+            return True
+
+        return self._git.path_exists(self._commit_from_path(path), self._git_path(path))
+
     def getattr(self, path, fh=None):
-        # --hacky solution--
-        # getattr tries to get the attributes
-        # of ".git" and "HEAD" files on every
-        # directory accessed. Still don't know
-        # the cause of this
-        if path.endswith(".git") or path.endswith("HEAD"):
+        if not self._path_exists(path):
             return {}
 
         uid, gid, pid = fuse_get_context()

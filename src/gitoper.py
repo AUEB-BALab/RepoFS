@@ -4,9 +4,10 @@ from subprocess import check_output, CalledProcessError, call
 
 
 class GitOperations(object):
-    def __init__(self, repo):
+    def __init__(self, repo, errpath="giterr.log"):
         self.repo = repo
         self._gitrepo = os.path.join(repo, '.git')
+        self._errfile = open(errpath, "w+", 0)
 
     def branches(self):
         """
@@ -15,7 +16,8 @@ class GitOperations(object):
         """
         try:
             branchrefs = check_output(['git', '--git-dir', self._gitrepo, 'for-each-ref',\
-                    '--format=%(objectname) %(refname)', 'refs/heads/']).splitlines()
+                    '--format=%(objectname) %(refname)', 'refs/heads/'],
+                    stderr=self._errfile).splitlines()
             branches = [ref.strip() for ref in branchrefs]
             return branches
         except CalledProcessError as e:
@@ -29,7 +31,8 @@ class GitOperations(object):
         """
         try:
             tagrefs = check_output(['git', '--git-dir', self._gitrepo, 'for-each-ref',\
-                    '--format=%(objectname) %(refname)', 'refs/tags/']).splitlines()
+                    '--format=%(objectname) %(refname)', 'refs/tags/'],
+                    stderr=self._errfile).splitlines()
             tags = [ref.strip() for ref in tagrefs]
             return tags
         except CalledProcessError as e:
@@ -42,7 +45,8 @@ class GitOperations(object):
         """
         try:
             commits = check_output(['git', '--git-dir', self._gitrepo,\
-                    'log', '--pretty=format:%H']).splitlines()
+                    'log', '--pretty=format:%H'],
+                    stderr=self._errfile).splitlines()
             commits = [commit.strip() for commit in commits]
             return commits
         except CalledProcessError as e:
@@ -54,7 +58,10 @@ class GitOperations(object):
         Returns commit log
         """
         try:
-            return check_output(['git', '--git-dir', self._gitrepo, 'log', commit])
+            return check_output(
+                ['git', '--git-dir', self._gitrepo, 'log', commit],
+                stderr=self._errfile
+            )
         except CalledProcessError as e:
             print "commit_log error: %s" % str(e)
             return None
@@ -85,32 +92,36 @@ class GitOperations(object):
         if path:
             path += "/"
 
+        if not self.path_exists(commit, path):
+            return []
+
         try:
             contents = check_output(['git', '--git-dir', self._gitrepo, 'ls-tree',\
-                    '--name-only', commit, path]).splitlines()
+                    '--name-only', commit, path], stderr=self._errfile).splitlines()
 
             contents = [c.split("/")[-1] for c in contents]
             return contents
         except CalledProcessError as e:
             print "directory_contents error: %s" % str(e)
-            return None
+            return []
 
     def is_dir(self, commit, path):
-        contents = self.directory_contents(commit, path)
-        if contents:
-            return True
-        return False
+        try:
+            object_type = check_output(['git', '--git-dir', self._gitrepo, 'cat-file',\
+                    '-t', "%s:%s" % (commit, path)], stderr=self._errfile).strip()
+            if object_type == "tree":
+                return True
+
+            return False
+        except CalledProcessError as e:
+            return False
 
     def file_contents(self, commit, path):
-        try:
-            call(['git', '--git-dir', self._gitrepo, 'cat-file',\
-                    '-e', "%s:%s" % (commit, path)])
+        if not self.path_exists(commit, path):
+            return ""
 
-            return check_output(['git', '--git-dir', self._gitrepo, 'show',\
-                    "%s:%s" % (commit, path)])
-        except CalledProcessError as e:
-            print "file_contents error: %s" % str(e)
-            return None
+        return check_output(['git', '--git-dir', self._gitrepo, 'show',\
+                "%s:%s" % (commit, path)], stderr=self._errfile)
 
     def file_size(self, commit, path):
         contents = self.file_contents(commit, path)
@@ -118,3 +129,11 @@ class GitOperations(object):
             return 0
 
         return len(contents)
+
+    def path_exists(self, commit, path):
+        try:
+            check_output(['git', '--git-dir', self._gitrepo, 'cat-file',\
+                    '-e', "%s:%s" % (commit, path)], stderr=self._errfile)
+            return True
+        except CalledProcessError as e:
+            return False
