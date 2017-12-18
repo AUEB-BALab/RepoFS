@@ -38,6 +38,35 @@ class RepoFS(Operations):
     def _commit_metadata_names(self):
         return ['.git-log', '.git-parents', '.git-descendants', '.git-names']
 
+    def _commit_metadata_folders(self):
+        return ['.git-parents', '.git-descendants', '.git-names']
+
+    def _commit_metadata_files(self):
+        return ['.git-log']
+
+    def _get_metadata_content(self, path):
+        commit = self._commit_from_path(path)
+        metaname = self._git_path(path)
+
+        if metaname == '.git-log':
+            return self._git.commit_log(commit)
+        else:
+            return ""
+
+    def _get_metadata_folder(self, path):
+        commit = self._commit_from_path(path)
+        metaname = self._git_path(path)
+
+        if metaname == '.git-parents':
+            return self._git.commit_parents(commit)
+        elif metaname == '.git-descendants':
+            return self._git.commit_descendants(commit)
+        elif metaname == '.git-names':
+            return self._git.commit_names(commit)
+        else:
+            return []
+
+
     def _git_path(self, path):
         if path.count("/") == 2:
             return ""
@@ -64,22 +93,25 @@ class RepoFS(Operations):
             if path =="/commits" or path.count("/") == 2:
                 return True
             else:
-                if self._git_path(path) in self._commit_metadata_names():
+                if self._git_path(path) in self._commit_metadata_files():
                     return False
+
+                if self._git_path(path) in self._commit_metadata_folders():
+                    return True
 
                 return self._git.is_dir(self._commit_from_path(path), self._git_path(path))
 
         return False
 
     def _get_file_size(self, path):
-        if self._git_path(path) in self._commit_metadata_names():
-            return 0
+        if self._git_path(path) in self._commit_metadata_files():
+            return len(self._get_metadata_content(path))
 
         return self._git.file_size(self._commit_from_path(path), self._git_path(path))
 
     def _get_file_contents(self, path):
-        if self._git_path(path) in self._commit_metadata_names():
-            return ""
+        if self._git_path(path) in self._commit_metadata_files():
+            return self._get_metadata_content(path)
 
         return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
 
@@ -125,7 +157,10 @@ class RepoFS(Operations):
             if path == "/commits":
                 dirents.extend(self._get_commits())
             elif path.count("/") >= 2: #/commits/commithash
-                dirents.extend(self._get_commit(path))
+                if self._git_path(path) in self._commit_metadata_folders():
+                    dirents.extend(self._get_metadata_folder(path))
+                else:
+                    dirents.extend(self._get_commit(path))
 
         for r in dirents:
             yield r
