@@ -4,7 +4,7 @@ import os
 import argparse
 
 from time import time
-from stat import S_IFDIR, S_IFREG
+from stat import S_IFDIR, S_IFREG, S_IFLNK
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
 from gitoper import GitOperations
@@ -12,8 +12,9 @@ from cache import Cache
 
 
 class RepoFS(Operations):
-    def __init__(self, repo, nocache):
+    def __init__(self, repo, mount, nocache):
         self.repo = repo
+        self.mount = mount
         self.nocache = nocache
         self._git = GitOperations(repo, "giterr.log")
         if not nocache:
@@ -73,6 +74,17 @@ class RepoFS(Operations):
 
         return path.split("/", 3)[-1]
 
+    def _is_symlink(self, path):
+        if path.startswith("/commits/") and\
+                path.split("/")[-2] in self._commit_metadata_folders() and\
+                path.split("/")[-1] in self._get_commits():
+            return True
+
+        return False
+
+    def _target_from_symlink(self, path):
+        return os.path.join(self.mount, "commits", path.split("/")[-1] + "/")
+
     def _commit_from_path(self, path):
         if path.count("/") < 2:
             return ""
@@ -131,6 +143,11 @@ class RepoFS(Operations):
         if path.count("/") == 3 and self._git_path(path) in self._commit_metadata_names():
             return True
 
+        if path.count("/") == 4 and\
+                path.split("/")[-2] in self._commit_metadata_folders() and\
+                path.split("/")[-1] in self._get_commits():
+            return True
+
         return self._git.path_exists(self._commit_from_path(path), self._git_path(path))
 
     def getattr(self, path, fh=None):
@@ -142,6 +159,14 @@ class RepoFS(Operations):
         if self._is_dir(path):
             st['st_mode'] = (S_IFDIR | 0o440)
             st['st_nlink'] = 2
+        elif self._is_symlink(path):
+            print "Found symlink"
+            print path
+            print self._target_from_symlink(path)
+            print "\n\n"
+            st['st_mode'] = (S_IFLNK | 0o777)
+            st['st_nlink'] = 1
+            st['st_size'] = len(self._target_from_symlink(path))
         else:
             st['st_mode'] = (S_IFREG | 0o440)
             st['st_size'] = self._get_file_size(path)
@@ -172,9 +197,11 @@ class RepoFS(Operations):
         return contents[offset:offset + size]
 
 
+    def readlink(self, path):
+        return self._target_from_symlink(path)
+
 
     statfs=None
-    readlink=None
 
     access=None
     chmod=None
@@ -193,7 +220,7 @@ def main(repo, mount, nocache):
     if not os.path.exists(os.path.join(repo, '.git')):
         raise Exception("Not a git repository")
 
-    FUSE(RepoFS(repo, nocache), mount, nothreads=True, foreground=True)
+    FUSE(RepoFS(repo, mount, nocache), mount, nothreads=True, foreground=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
