@@ -53,6 +53,19 @@ class GitOperations(object):
             print "commits error: %s" % str(e)
             return None
 
+    def last_commit_of_branch(self, branch):
+        """
+        Returns the last commit of a branch.
+        """
+        try:
+            commit = check_output(['git', '--git-dir', self._gitrepo,\
+                    'rev-list', '-n', '1', branch],
+                    stderr=self._errfile).strip()
+            return commit
+        except CalledProcessError as e:
+            print "last commit of branch error: %s" % str(e)
+            return None
+
     def commit_log(self, commit):
         """
         Returns commit log

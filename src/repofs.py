@@ -21,7 +21,7 @@ class RepoFS(Operations):
             self._cache = Cache()
 
     def _get_root(self):
-        return ['commits']
+        return ['commits', 'branches']
 
     def _get_commits(self):
         if self._cache:
@@ -35,6 +35,12 @@ class RepoFS(Operations):
             return commits
 
         return self._git.commits() # if no cache get them from git
+
+    def _get_branches(self):
+        branches = self._git.branches()
+        branches = [branch.split(" ")[1].split("/")[-1] for branch in branches]
+
+        return branches
 
     def _commit_metadata_names(self):
         return ['.git-log', '.git-parents', '.git-descendants', '.git-names']
@@ -68,6 +74,9 @@ class RepoFS(Operations):
             return []
 
 
+    def _commit_from_branch(self, branch):
+        return self._git.last_commit_of_branch(branch)
+
     def _git_path(self, path):
         if path.count("/") == 2:
             return ""
@@ -80,10 +89,17 @@ class RepoFS(Operations):
                 path.split("/")[-1] in self._get_commits():
             return True
 
+        if path.startswith("/branches") and path.count("/") == 2:
+            return True
+
         return False
 
     def _target_from_symlink(self, path):
-        return os.path.join(self.mount, "commits", path.split("/")[-1] + "/")
+        if path.startswith("/commits/"):
+            return os.path.join(self.mount, "commits", path.split("/")[-1] + "/")
+
+        if path.startswith("/branches/"):
+            return os.path.join(self.mount, "commits", self._commit_from_branch(path.split("/")[-1]) + "/")
 
     def _commit_from_path(self, path):
         if path.count("/") < 2:
@@ -113,6 +129,9 @@ class RepoFS(Operations):
 
                 return self._git.is_dir(self._commit_from_path(path), self._git_path(path))
 
+        if path == "/branches":
+            return True
+
         return False
 
     def _get_file_size(self, path):
@@ -138,6 +157,9 @@ class RepoFS(Operations):
             if path.startswith("/commits"):
                 return path.split("/")[-1] in self._get_commits()
 
+            if path.startswith("/branches") and path.count("/") == 2:
+                return path.split("/")[-1] in self._get_branches()
+
             return False
 
         if path.count("/") == 3 and self._git_path(path) in self._commit_metadata_names():
@@ -160,10 +182,6 @@ class RepoFS(Operations):
             st['st_mode'] = (S_IFDIR | 0o440)
             st['st_nlink'] = 2
         elif self._is_symlink(path):
-            print "Found symlink"
-            print path
-            print self._target_from_symlink(path)
-            print "\n\n"
             st['st_mode'] = (S_IFLNK | 0o777)
             st['st_nlink'] = 1
             st['st_size'] = len(self._target_from_symlink(path))
@@ -186,6 +204,8 @@ class RepoFS(Operations):
                     dirents.extend(self._get_metadata_folder(path))
                 else:
                     dirents.extend(self._get_commit(path))
+        elif path == "/branches":
+            dirents.extend(self._get_branches())
 
         for r in dirents:
             yield r
