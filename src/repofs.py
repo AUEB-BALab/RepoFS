@@ -21,7 +21,7 @@ class RepoFS(Operations):
             self._cache = Cache()
 
     def _get_root(self):
-        return ['commits', 'branches']
+        return ['commits', 'branches', 'tags']
 
     def _get_commits(self):
         if self._cache:
@@ -41,6 +41,12 @@ class RepoFS(Operations):
         branches = [branch.split(" ")[1].split("/")[-1] for branch in branches]
 
         return branches
+
+    def _get_tags(self):
+        tags = self._git.tags()
+        tags = [tag.split(" ")[1].split("/")[-1] for tag in tags]
+
+        return tags
 
     def _commit_metadata_names(self):
         return ['.git-log', '.git-parents', '.git-descendants', '.git-names']
@@ -77,6 +83,9 @@ class RepoFS(Operations):
     def _commit_from_branch(self, branch):
         return self._git.last_commit_of_branch(branch)
 
+    def _commit_from_tag(self, tag):
+        return self._git.commit_of_tag(tag)
+
     def _git_path(self, path):
         if path.count("/") == 2:
             return ""
@@ -92,6 +101,9 @@ class RepoFS(Operations):
         if path.startswith("/branches") and path.count("/") == 2:
             return True
 
+        if path.startswith("/tags") and path.count("/") == 2:
+            return True
+
         return False
 
     def _target_from_symlink(self, path):
@@ -100,6 +112,9 @@ class RepoFS(Operations):
 
         if path.startswith("/branches/"):
             return os.path.join(self.mount, "commits", self._commit_from_branch(path.split("/")[-1]) + "/")
+
+        if path.startswith("/tags/"):
+            return os.path.join(self.mount, "commits", self._commit_from_tag(path.split("/")[-1]) + "/")
 
     def _commit_from_path(self, path):
         if path.count("/") < 2:
@@ -132,6 +147,9 @@ class RepoFS(Operations):
         if path == "/branches":
             return True
 
+        if path == "/tags":
+            return True
+
         return False
 
     def _get_file_size(self, path):
@@ -159,6 +177,9 @@ class RepoFS(Operations):
 
             if path.startswith("/branches") and path.count("/") == 2:
                 return path.split("/")[-1] in self._get_branches()
+
+            if path.startswith("/tags") and path.count("/") == 2:
+                return path.split("/")[-1] in self._get_tags()
 
             return False
 
@@ -206,6 +227,8 @@ class RepoFS(Operations):
                     dirents.extend(self._get_commit(path))
         elif path == "/branches":
             dirents.extend(self._get_branches())
+        elif path == "/tags":
+            dirents.extend(self._get_tags())
 
         for r in dirents:
             yield r

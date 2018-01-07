@@ -59,11 +59,24 @@ class GitOperations(object):
         """
         try:
             commit = check_output(['git', '--git-dir', self._gitrepo,\
-                    'rev-list', '-n', '1', branch],
+                    'rev-list', '-n', '1', branch, '--'],
                     stderr=self._errfile).strip()
             return commit
         except CalledProcessError as e:
             print "last commit of branch error: %s" % str(e)
+            return None
+
+    def commit_of_tag(self, tag):
+        """
+        Returns the commit of a tag.
+        """
+        try:
+            commit = check_output(['git', '--git-dir', self._gitrepo,\
+                    'rev-list', '-n', '1', tag, '--'],
+                    stderr=self._errfile).strip()
+            return commit
+        except CalledProcessError as e:
+            print "commit of tag error: %s" % str(e)
             return None
 
     def commit_log(self, commit):
