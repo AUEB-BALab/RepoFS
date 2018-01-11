@@ -1,4 +1,5 @@
 import os
+import sys
 
 from subprocess import check_output, CalledProcessError, call
 
@@ -25,7 +26,9 @@ class GitOperations(object):
             try:
                 out = check_output(list, stderr=self._errfile)
             except CalledProcessError as e:
-                print "Error calling %s: %s" % (command, str(e))
+                message = "Error calling %s: %s" % (command, str(e))
+                sys.stderr.write(message)
+                self._errfile.write(message)
                 out = None
             if self._caching:
                 self._cache[command] = out
