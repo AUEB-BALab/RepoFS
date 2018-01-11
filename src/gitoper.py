@@ -154,10 +154,7 @@ class GitOperations(object):
         try:
             object_type = self.cached_command(['cat-file',
                     '-t', "%s:%s" % (commit, path)]).strip()
-            if object_type == "tree":
-                return True
-
-            return False
+            return object_type == "tree"
         except CalledProcessError as e:
             return False
 
