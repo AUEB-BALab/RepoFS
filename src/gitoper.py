@@ -4,10 +4,32 @@ from subprocess import check_output, CalledProcessError, call
 
 
 class GitOperations(object):
-    def __init__(self, repo, errpath="giterr.log"):
+    def __init__(self, repo, caching, errpath="giterr.log"):
         self.repo = repo
         self._gitrepo = os.path.join(repo, '.git')
         self._errfile = open(errpath, "w+", 0)
+        self._cache = {}
+        self._caching = caching
+
+    def cached_command(self, list):
+        """
+        Executes the specified git command and returns its result.
+        Subsequent executions of the same command return the cached result
+        """
+
+        list = ['git', '--git-dir', self._gitrepo] + list
+        command = " ".join(list)
+        if command in self._cache:
+            return self._cache[command]
+        else:
+            try:
+                out = check_output(list, stderr=self._errfile)
+            except CalledProcessError as e:
+                print "Error calling %s: %s" % command, str(e)
+                out = None
+            if self._caching:
+                self._cache[command] = out
+            return out
 
     def branches(self):
         """
@@ -15,9 +37,9 @@ class GitOperations(object):
         <commit_hash> refs/heads/<branchname>
         """
         try:
-            branchrefs = check_output(['git', '--git-dir', self._gitrepo, 'for-each-ref',\
-                    '--format=%(objectname) %(refname)', 'refs/heads/'],
-                    stderr=self._errfile).splitlines()
+            branchrefs = self.cached_command(['for-each-ref',
+                    '--format=%(objectname) %(refname)', 'refs/heads/']
+                                             ).splitlines()
             branches = [ref.strip() for ref in branchrefs]
             return branches
         except CalledProcessError as e:
@@ -30,9 +52,9 @@ class GitOperations(object):
         <commit_hash> refs/tags/<tagname>
         """
         try:
-            tagrefs = check_output(['git', '--git-dir', self._gitrepo, 'for-each-ref',\
-                    '--format=%(objectname) %(refname)', 'refs/tags/'],
-                    stderr=self._errfile).splitlines()
+            tagrefs = self.cached_command(['for-each-ref',
+                    '--format=%(objectname) %(refname)', 'refs/tags/']
+                                          ).splitlines()
             tags = [ref.strip() for ref in tagrefs]
             return tags
         except CalledProcessError as e:
@@ -44,9 +66,8 @@ class GitOperations(object):
         Returns a list of commit hashes
         """
         try:
-            commits = check_output(['git', '--git-dir', self._gitrepo,\
-                    'log', '--pretty=format:%H'],
-                    stderr=self._errfile).splitlines()
+            commits = self.cached_command(['log', '--pretty=format:%H']
+                                          ).splitlines()
             commits = [commit.strip() for commit in commits]
             return commits
         except CalledProcessError as e:
@@ -58,9 +79,8 @@ class GitOperations(object):
         Returns the last commit of a branch.
         """
         try:
-            commit = check_output(['git', '--git-dir', self._gitrepo,\
-                    'rev-list', '-n', '1', branch, '--'],
-                    stderr=self._errfile).strip()
+            commit = self.cached_command(['rev-list', '-n', '1', branch, '--']
+                                         ).strip()
             return commit
         except CalledProcessError as e:
             print "last commit of branch error: %s" % str(e)
@@ -71,9 +91,8 @@ class GitOperations(object):
         Returns the commit of a tag.
         """
         try:
-            commit = check_output(['git', '--git-dir', self._gitrepo,\
-                    'rev-list', '-n', '1', tag, '--'],
-                    stderr=self._errfile).strip()
+            commit = self.cached_command(['rev-list', '-n', '1', tag, '--']
+                                         ).strip()
             return commit
         except CalledProcessError as e:
             print "commit of tag error: %s" % str(e)
@@ -122,8 +141,8 @@ class GitOperations(object):
             return []
 
         try:
-            contents = check_output(['git', '--git-dir', self._gitrepo, 'ls-tree',\
-                    '--name-only', commit, path], stderr=self._errfile).splitlines()
+            contents = self.cached_command(['ls-tree',
+                    '--name-only', commit, path]).splitlines()
 
             contents = [c.split("/")[-1] for c in contents]
             return contents
@@ -133,8 +152,8 @@ class GitOperations(object):
 
     def is_dir(self, commit, path):
         try:
-            object_type = check_output(['git', '--git-dir', self._gitrepo, 'cat-file',\
-                    '-t', "%s:%s" % (commit, path)], stderr=self._errfile).strip()
+            object_type = self.cached_command(['cat-file',
+                    '-t', "%s:%s" % (commit, path)]).strip()
             if object_type == "tree":
                 return True
 
@@ -146,7 +165,7 @@ class GitOperations(object):
         if not self.path_exists(commit, path):
             return ""
 
-        return check_output(['git', '--git-dir', self._gitrepo, 'show',\
+        return check_output(['git', '--git-dir', self._gitrepo, 'show',
                 "%s:%s" % (commit, path)], stderr=self._errfile)
 
     def file_size(self, commit, path):
@@ -158,8 +177,7 @@ class GitOperations(object):
 
     def path_exists(self, commit, path):
         try:
-            check_output(['git', '--git-dir', self._gitrepo, 'cat-file',\
-                    '-e', "%s:%s" % (commit, path)], stderr=self._errfile)
+            self.cached_command(['cat-file', '-e', "%s:%s" % (commit, path)])
             return True
         except CalledProcessError as e:
             return False

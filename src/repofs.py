@@ -8,7 +8,6 @@ from stat import S_IFDIR, S_IFREG, S_IFLNK
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
 from gitoper import GitOperations
-from cache import Cache
 
 
 class RepoFS(Operations):
@@ -16,25 +15,13 @@ class RepoFS(Operations):
         self.repo = repo
         self.mount = mount
         self.nocache = nocache
-        self._git = GitOperations(repo, "giterr.log")
-        if not nocache:
-            self._cache = Cache()
+        self._git = GitOperations(repo, not nocache, "giterr.log")
 
     def _get_root(self):
         return ['commits', 'branches', 'tags']
 
     def _get_commits(self):
-        if self._cache:
-            commits = self._cache.get_commit_names()
-            if commits: # commits exist on cache
-                return commits
-
-            # no cache entry, get commits and store in cache
-            commits = self._git.commits()
-            self._cache.store_commits(commits)
-            return commits
-
-        return self._git.commits() # if no cache get them from git
+        return self._git.commits()
 
     def _get_branches(self):
         branches = self._git.branches()
