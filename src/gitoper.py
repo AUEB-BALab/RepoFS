@@ -12,10 +12,12 @@ class GitOperations(object):
         self._cache = {}
         self._caching = caching
 
-    def cached_command(self, list):
+    def cached_command(self, list, return_exit_code=False):
         """
         Executes the specified git command and returns its result.
         Subsequent executions of the same command return the cached result
+        If return_exit_code is set, then the return value is True of False
+        depending on whether the command exited with 0 or not.
         """
 
         list = ['git', '--git-dir', self._gitrepo] + list
@@ -25,11 +27,16 @@ class GitOperations(object):
         else:
             try:
                 out = check_output(list, stderr=self._errfile)
+                if return_exit_code:
+                    out = True
             except CalledProcessError as e:
-                message = "Error calling %s: %s" % (command, str(e))
-                sys.stderr.write(message)
-                self._errfile.write(message)
-                out = None
+                if return_exit_code:
+                    out = False
+                else:
+                    message = "Error calling %s: %s" % (command, str(e))
+                    sys.stderr.write(message)
+                    self._errfile.write(message)
+                    out = None
             if self._caching:
                 self._cache[command] = out
             return out
@@ -155,8 +162,9 @@ class GitOperations(object):
 
     def is_dir(self, commit, path):
         try:
-            object_type = self.cached_command(['cat-file',
-                    '-t', "%s:%s" % (commit, path)]).strip()
+            object_type = self.cached_command(['cat-file', '-t',
+                                               '--allow-unknown-type',
+                                               "%s:%s" % (commit, path)]).strip()
             return object_type == "tree"
         except CalledProcessError as e:
             return False
@@ -176,8 +184,4 @@ class GitOperations(object):
         return len(contents)
 
     def path_exists(self, commit, path):
-        try:
-            self.cached_command(['cat-file', '-e', "%s:%s" % (commit, path)])
-            return True
-        except CalledProcessError as e:
-            return False
+        return self.cached_command(['cat-file', '-e', "%s:%s" % (commit, path)], True)
