@@ -25,7 +25,7 @@ class GitOperations(object):
             try:
                 out = check_output(list, stderr=self._errfile)
             except CalledProcessError as e:
-                print "Error calling %s: %s" % command, str(e)
+                print "Error calling %s: %s" % (command, str(e))
                 out = None
             if self._caching:
                 self._cache[command] = out
