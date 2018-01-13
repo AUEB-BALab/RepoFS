@@ -11,6 +11,7 @@ class GitOperations(object):
         self._errfile = open(errpath, "w+", 0)
         self._cache = {}
         self._caching = caching
+        self._trees = {}
 
     def cached_command(self, list, return_exit_code=False):
         """
@@ -40,6 +41,19 @@ class GitOperations(object):
             if self._caching:
                 self._cache[command] = out
             return out
+
+    def fill_trees(self, commit, contents):
+        if not commit in self._trees:
+            self._trees[commit] = set([''])
+
+        trees = []
+        for cont in contents:
+            splitted = cont.split(" ")
+            path = splitted[-1].split("\t")[-1]
+            if splitted[1] == "tree" and path not in self._trees[commit]:
+                trees.append(path)
+
+        self._trees[commit].update(trees)
 
     def branches(self):
         """
@@ -76,7 +90,7 @@ class GitOperations(object):
         Returns a list of commit hashes
         """
         try:
-            commits = self.cached_command(['log', '--pretty=format:%H']
+            commits = self.cached_command(['rev-list', 'master']
                                           ).splitlines()
             commits = [commit.strip() for commit in commits]
             return commits
@@ -152,15 +166,20 @@ class GitOperations(object):
 
         try:
             contents = self.cached_command(['ls-tree',
-                    '--name-only', commit, path]).splitlines()
+                    commit, path]).splitlines()
 
-            contents = [c.split("/")[-1] for c in contents]
+            self.fill_trees(commit, contents)
+
+            contents = [c.split(" ")[-1].split("\t")[-1].split("/")[-1] for c in contents]
             return contents
         except CalledProcessError as e:
             print "directory_contents error: %s" % str(e)
             return []
 
     def is_dir(self, commit, path):
+        if commit in self._trees:
+            return path in self._trees[commit]
+
         try:
             object_type = self.cached_command(['cat-file', '-t',
                                                '--allow-unknown-type',
@@ -184,4 +203,7 @@ class GitOperations(object):
         return len(contents)
 
     def path_exists(self, commit, path):
+        if commit in self._trees and path in self._trees[commit]:
+            return True
+
         return self.cached_command(['cat-file', '-e', "%s:%s" % (commit, path)], True)
