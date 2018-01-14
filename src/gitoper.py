@@ -12,6 +12,7 @@ class GitOperations(object):
         self._cache = {}
         self._caching = caching
         self._trees = {}
+        self._sizes = {}
 
     def cached_command(self, list, return_exit_code=False):
         """
@@ -196,11 +197,19 @@ class GitOperations(object):
                 "%s:%s" % (commit, path)], stderr=self._errfile)
 
     def file_size(self, commit, path):
-        contents = self.file_contents(commit, path)
-        if not contents:
-            return 0
+        if not commit in self._sizes:
+            self._sizes[commit] = {}
 
-        return len(contents)
+        if path in self._sizes[commit]:
+            return self._sizes[commit][path]
+
+        contents = self.file_contents(commit, path)
+        size = 0
+        if contents:
+            size = len(contents)
+
+        self._sizes[commit][path] = size
+        return size
 
     def path_exists(self, commit, path):
         if commit in self._trees and path in self._trees[commit]:
