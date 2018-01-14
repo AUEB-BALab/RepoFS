@@ -155,27 +155,29 @@ class RepoFS(Operations):
         if path == "/":
             return True
 
-        if path.count("/") == 1:
-            return path.split("/")[-1] in self._get_root()
+        splitted = path.split("/")
+        splitlen = len(splitted)
+        if splitlen == 2: # one /
+            return splitted[-1] in self._get_root()
 
-        if path.count("/") == 2:
-            if path.startswith("/commits"):
-                return path.split("/")[-1] in self._get_commits()
+        if splitlen == 3: # two /
+            if splitted[1] == "commits":
+                return splitted[-1] in self._get_commits()
 
-            if path.startswith("/branches") and path.count("/") == 2:
-                return path.split("/")[-1] in self._get_branches()
+            if splitted[1] == "branches" and splitlen == 3:
+                return splitted[-1] in self._get_branches()
 
-            if path.startswith("/tags") and path.count("/") == 2:
-                return path.split("/")[-1] in self._get_tags()
+            if splitted[1] == "tags" and splitlen == 3:
+                return splitted[-1] in self._get_tags()
 
             return False
 
-        if path.count("/") == 3 and self._git_path(path) in self._commit_metadata_names():
+        if splitlen == 4 and self._git_path(path) in self._commit_metadata_names():
             return True
 
-        if path.count("/") == 4 and\
-                path.split("/")[-2] in self._commit_metadata_folders() and\
-                path.split("/")[-1] in self._get_commits():
+        if splitlen == 5 and\
+                splitted[-2] in self._commit_metadata_folders() and\
+                splitted[-1] in self._get_commits():
             return True
 
         return self._git.path_exists(self._commit_from_path(path), self._git_path(path))
