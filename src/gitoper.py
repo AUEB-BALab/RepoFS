@@ -162,9 +162,6 @@ class GitOperations(object):
         if path:
             path += "/"
 
-        if not self.path_exists(commit, path):
-            return []
-
         try:
             contents = self.cached_command(['ls-tree',
                     commit, path]).splitlines()
@@ -190,9 +187,6 @@ class GitOperations(object):
             return False
 
     def file_contents(self, commit, path):
-        if not self.path_exists(commit, path):
-            return ""
-
         return check_output(['git', '--git-dir', self._gitrepo, 'show',
                 "%s:%s" % (commit, path)], stderr=self._errfile)
 
@@ -210,9 +204,3 @@ class GitOperations(object):
 
         self._sizes[commit][path] = size
         return size
-
-    def path_exists(self, commit, path):
-        if commit in self._trees and path in self._trees[commit]:
-            return True
-
-        return self.cached_command(['cat-file', '-e', "%s:%s" % (commit, path)], True)

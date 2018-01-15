@@ -151,41 +151,7 @@ class RepoFS(Operations):
 
         return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
 
-    def _path_exists(self, path):
-        if path == "/":
-            return True
-
-        splitted = path.split("/")
-        splitlen = len(splitted)
-        if splitlen == 2: # one /
-            return splitted[-1] in self._get_root()
-
-        if splitlen == 3: # two /
-            if splitted[1] == "commits":
-                return splitted[-1] in self._get_commits()
-
-            if splitted[1] == "branches" and splitlen == 3:
-                return splitted[-1] in self._get_branches()
-
-            if splitted[1] == "tags" and splitlen == 3:
-                return splitted[-1] in self._get_tags()
-
-            return False
-
-        if splitlen == 4 and self._git_path(path) in self._commit_metadata_names():
-            return True
-
-        if splitlen == 5 and\
-                splitted[-2] in self._commit_metadata_folders() and\
-                splitted[-1] in self._get_commits():
-            return True
-
-        return self._git.path_exists(self._commit_from_path(path), self._git_path(path))
-
     def getattr(self, path, fh=None):
-        if not self._path_exists(path):
-            return {}
-
         uid, gid, pid = fuse_get_context()
         st = dict(st_uid=uid, st_gid=gid)
         if self._is_dir(path):
