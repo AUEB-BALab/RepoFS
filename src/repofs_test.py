@@ -16,11 +16,14 @@ class RepoFSTestCase(TestCase):
         self.last_commit = '/commits/2009/10/11/' + self.repofs._get_commits(
             '/commits/2009/10/11')[0]
 
-    def test_month_days(self):
-        self.assertEqual(self.repofs._month_days(2017),
+    def test_days_per_month(self):
+        self.assertEqual(self.repofs._days_per_month(2017),
                          [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
-        self.assertEqual(self.repofs._month_days(2004),
+        self.assertEqual(self.repofs._days_per_month(2004),
                          [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+
+    def test_month_dates(self):
+        self.assertEqual(self.repofs._month_dates(2017, 1), range(1, 32))
 
     def test_verify_date_path(self):
         with self.assertRaises(FuseOSError):
@@ -44,6 +47,9 @@ class RepoFSTestCase(TestCase):
         self.repofs._verify_date_path([2005, 1, 31])
 
     def test_verify_commits(self):
+        self.assertEqual(len(self.repofs._get_commits('/commits')), 5)
+        self.assertEqual(len(self.repofs._get_commits('/commits/2005')), 12)
+        self.assertEqual(len(self.repofs._get_commits('/commits/2005/6')), 30)
         self.assertEqual(len(self.repofs._get_commits('/commits/2005/6/7')), 1)
         self.assertEqual(len(self.repofs._get_commits('/commits/2005/6/6')), 0)
         self.assertEqual(len(self.repofs._get_commits('/commits/2005/6/8')), 0)

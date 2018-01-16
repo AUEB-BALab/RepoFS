@@ -20,7 +20,7 @@ class RepoFS(Operations):
         self.nocache = nocache
         self._git = GitOperations(repo, not nocache, "giterr.log")
 
-    def _month_days(self, year):
+    def _days_per_month(self, year):
         """ Return an array with the number of days in each month
         for the given year. """
         days = []
@@ -31,6 +31,12 @@ class RepoFS(Operations):
             last_day = next_month - datetime.timedelta(days=next_month.day)
             days.append(last_day.day)
         return days
+
+    def _month_dates(self, year, month):
+        """ Return an array with the dates in the given year and month
+        The month is 1-based.
+        """
+        return range(1, self._days_per_month(year)[month - 1] + 1)
 
     def _get_root(self):
         return ['commits', 'branches', 'tags']
@@ -54,7 +60,7 @@ class RepoFS(Operations):
             raise FuseOSError(errno.ENOENT)
         if len(elements) >= 2 and elements[1] not in range(1, 13):
             raise FuseOSError(errno.ENOENT)
-        if len(elements) >= 3 and elements[2] not in range(1, self._month_days(
+        if len(elements) >= 3 and elements[2] not in range(1, self._days_per_month(
                 elements[0])[elements[1] - 1] + 1):
             raise FuseOSError(errno.ENOENT)
 
@@ -78,7 +84,8 @@ class RepoFS(Operations):
             return self._string_list(range(1, 13))
         elif len(elements) == 2:
             # /commits/yyyy/mm
-            return self._string_list(_month_days(elements[0])[elements[1] - 1])
+            return self._string_list(self._month_dates(elements[0],
+                                                       elements[1]))
         elif len(elements) == 3:
             # /commits/yyyy/mm/dd
             return self._git.commits(elements[0], elements[1],
