@@ -4,6 +4,7 @@ import argparse
 import errno
 import datetime
 import os
+import sys
 
 from time import time
 from stat import S_IFDIR, S_IFREG, S_IFLNK
@@ -267,11 +268,16 @@ class RepoFS(Operations):
     utimens=None
 
 
-def main(repo, mount, nocache):
-    if not os.path.exists(os.path.join(repo, '.git')):
+def main(repo_path, mount, nocache):
+    if not os.path.exists(os.path.join(repo_path, '.git')):
         raise Exception("Not a git repository")
 
-    FUSE(RepoFS(repo, mount, nocache), mount, nothreads=True, foreground=True)
+    sys.stderr.write("Examining repository.  Please wait..\n")
+    repo = RepoFS(repo_path, mount, nocache)
+    sys.stderr.write("Ready!\n")
+    sys.stderr.write("Repository %s is now visible at %s\n" % (repo_path,
+                                                               mount))
+    FUSE(repo, mount, nothreads=True, foreground=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
