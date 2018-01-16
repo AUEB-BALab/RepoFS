@@ -169,10 +169,10 @@ class RepoFS(Operations):
             return os.path.join(self.mount, "commits", path.split("/")[-1] + "/")
 
         if path.startswith("/branches/"):
-            return os.path.join(self.mount, "commits", self._commit_from_branch(path.split("/")[-1]) + "/")
+            return self._commit_from_branch(path.split("/")[-1]) + "/"
 
         if path.startswith("/tags/"):
-            return os.path.join(self.mount, "commits", self._commit_from_tag(path.split("/")[-1]) + "/")
+            return self._commit_from_tag(path.split("/")[-1]) + "/"
 
     def _commit_from_path(self, path):
         if path.count("/") < 5:

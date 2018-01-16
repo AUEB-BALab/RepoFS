@@ -88,5 +88,11 @@ class RepoFSTestCase(TestCase):
         self.assertFalse(self.repofs._is_dir(self.last_commit + '/.git-log'))
         self.assertFalse(self.repofs._is_dir(self.last_commit + '/dir_a/file_aa'))
 
+    def test_target_from_symlink(self):
+        self.assertEqual(self.repofs._target_from_symlink('/tags/t20091011ca'),
+                         '..' + self.last_commit + '/')
+        self.assertEqual(self.repofs._target_from_symlink('/branches/master'),
+                         '..' + self.last_commit + '/')
+
 if __name__ == "__main__":
     main()

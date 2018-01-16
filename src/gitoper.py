@@ -15,6 +15,9 @@ class GitOperations(object):
         self._trees = {}
         self._sizes = {}
         self.years = range(self._first_year(), self._last_year() + 1)
+        # A format for links to link back to commits
+        self._link_format = ['--format=../commits/%cd/%H',
+                             '--date=format:%Y/%m/%d', '--']
 
     def cached_command(self, list, return_exit_code=False):
         """
@@ -132,7 +135,8 @@ class GitOperations(object):
         Returns the last commit of a branch.
         """
         try:
-            commit = self.cached_command(['rev-list', '-n', '1', branch, '--']
+            commit = self.cached_command(['log', '-n', '1', branch] +
+                                         self._link_format
                                          ).strip()
             return commit
         except CalledProcessError as e:
@@ -144,7 +148,8 @@ class GitOperations(object):
         Returns the commit of a tag.
         """
         try:
-            commit = self.cached_command(['rev-list', '-n', '1', tag, '--']
+            commit = self.cached_command(['log', '-n', '1', tag] +
+                                         self._link_format
                                          ).strip()
             return commit
         except CalledProcessError as e:
