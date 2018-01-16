@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 
@@ -13,6 +14,7 @@ class GitOperations(object):
         self._caching = caching
         self._trees = {}
         self._sizes = {}
+        self.years = range(self._first_year(), self._last_year() + 1)
 
     def cached_command(self, list, return_exit_code=False):
         """
@@ -28,6 +30,7 @@ class GitOperations(object):
             return self._cache[command]
         else:
             try:
+                # print(command)
                 out = check_output(list, stderr=self._errfile)
                 if return_exit_code:
                     out = True
@@ -55,6 +58,27 @@ class GitOperations(object):
                 trees.append(path)
 
         self._trees[commit].update(trees)
+
+    def _first_year(self):
+        """
+        Returns the year of the repo's first commit(s)
+        """
+        first_years = self.cached_command(['log', '--max-parents=0',
+                                         '--date=format:%Y',
+                                         '--pretty=%ad',
+                                         'master']
+                                         ).splitlines()
+        return int(sorted(first_years)[0])
+
+    def _last_year(self):
+        """
+        Returns the year of the repo's last commit
+        """
+        return int(self.cached_command(['log', '-n', '1',
+                                         '--date=format:%Y',
+                                         '--pretty=%ad',
+                                         'master']
+                                         ))
 
     def branches(self):
         """
@@ -86,18 +110,22 @@ class GitOperations(object):
             print "tags error: %s" % str(e)
             return None
 
-    def commits(self):
+    def commits(self, y, m, d):
         """
-        Returns a list of commit hashes
+        Returns a list of commit hashes for the given year, month, day
         """
-        try:
-            commits = self.cached_command(['rev-list', 'master']
-                                          ).splitlines()
-            commits = [commit.strip() for commit in commits]
-            return commits
-        except CalledProcessError as e:
-            print "commits error: %s" % str(e)
-            return None
+        end = datetime.date(y, m, d)
+        start = end - datetime.timedelta(days=1)
+        commits = self.cached_command(['log',
+                                       '--after',
+                                       '%04d-%02d-%02d' % (start.year,
+                                                           start.month,
+                                                           start.day),
+                                       '--before',
+                                       '%04d-%02d-%02d' % (y, m, d),
+                                       '--pretty=%H']).splitlines()
+        commits = [commit.strip() for commit in commits]
+        return commits
 
     def last_commit_of_branch(self, branch):
         """
@@ -177,7 +205,6 @@ class GitOperations(object):
     def is_dir(self, commit, path):
         if commit in self._trees:
             return path in self._trees[commit]
-
         try:
             object_type = self.cached_command(['cat-file', '-t',
                                                '--allow-unknown-type',
