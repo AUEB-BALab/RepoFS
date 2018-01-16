@@ -97,7 +97,7 @@ class RepoFS(Operations):
                 return dirents
 
     def _commit_metadata_names(self):
-        return ['.git-log', '.git-parents', '.git-descendants', '.git-names']
+        return self._commit_metadata_folders() + self._commit_metadata_files()
 
     def _commit_metadata_folders(self):
         return ['.git-parents', '.git-descendants', '.git-names']
