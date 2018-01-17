@@ -114,15 +114,18 @@ class GitOperations(object):
         """
         Returns a list of commit hashes for the given year, month, day
         """
-        end = datetime.date(y, m, d)
-        start = end - datetime.timedelta(days=1)
+        start = datetime.date(y, m, d)
+        end = start + datetime.timedelta(days=1)
+        # T00:00:00 is at the start of the specified day
         commits = self.cached_command(['log',
                                        '--after',
-                                       '%04d-%02d-%02d' % (start.year,
+                                       '%04d-%02d-%02dT00:00:00' % (start.year,
                                                            start.month,
                                                            start.day),
                                        '--before',
-                                       '%04d-%02d-%02d' % (y, m, d),
+                                       '%04d-%02d-%02dT00:00:00' % (end.year,
+                                                           end.month,
+                                                           end.day),
                                        '--pretty=%H']).splitlines()
         commits = [commit.strip() for commit in commits]
         return commits
