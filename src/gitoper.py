@@ -15,6 +15,9 @@ class GitOperations(object):
         self._trees = {}
         self._sizes = {}
         self.years = range(self._first_year(), self._last_year() + 1)
+        # A format for links to link back to commits
+        self._link_format = ['--format=../commits/%cd/%H',
+                             '--date=format:%Y/%m/%d', '--']
 
     def cached_command(self, list, return_exit_code=False):
         """
@@ -85,30 +88,22 @@ class GitOperations(object):
         Returns branches in the form:
         <commit_hash> refs/heads/<branchname>
         """
-        try:
-            branchrefs = self.cached_command(['for-each-ref',
-                    '--format=%(objectname) %(refname)', 'refs/heads/']
-                                             ).splitlines()
-            branches = [ref.strip() for ref in branchrefs]
-            return branches
-        except CalledProcessError as e:
-            print "branches error: %s" % str(e)
-            return None
+        branchrefs = self.cached_command(['for-each-ref',
+                '--format=%(objectname) %(refname)', 'refs/heads/']
+                                         ).splitlines()
+        branches = [ref.strip() for ref in branchrefs]
+        return branches
 
     def tags(self):
         """
         Returns tags in the form:
         <commit_hash> refs/tags/<tagname>
         """
-        try:
-            tagrefs = self.cached_command(['for-each-ref',
-                    '--format=%(objectname) %(refname)', 'refs/tags/']
-                                          ).splitlines()
-            tags = [ref.strip() for ref in tagrefs]
-            return tags
-        except CalledProcessError as e:
-            print "tags error: %s" % str(e)
-            return None
+        tagrefs = self.cached_command(['for-each-ref',
+                '--format=%(objectname) %(refname)', 'refs/tags/']
+                                      ).splitlines()
+        tags = [ref.strip() for ref in tagrefs]
+        return tags
 
     def commits(self, y, m, d):
         """
@@ -134,38 +129,28 @@ class GitOperations(object):
         """
         Returns the last commit of a branch.
         """
-        try:
-            commit = self.cached_command(['rev-list', '-n', '1', branch, '--']
-                                         ).strip()
-            return commit
-        except CalledProcessError as e:
-            print "last commit of branch error: %s" % str(e)
-            return None
+        commit = self.cached_command(['log', '-n', '1', branch] +
+                                     self._link_format
+                                     ).strip()
+        return commit
 
     def commit_of_tag(self, tag):
         """
         Returns the commit of a tag.
         """
-        try:
-            commit = self.cached_command(['rev-list', '-n', '1', tag, '--']
-                                         ).strip()
-            return commit
-        except CalledProcessError as e:
-            print "commit of tag error: %s" % str(e)
-            return None
+        commit = self.cached_command(['log', '-n', '1', tag] +
+                                     self._link_format
+                                     ).strip()
+        return commit
 
     def commit_log(self, commit):
         """
         Returns commit log
         """
-        try:
-            return check_output(
-                ['git', '--git-dir', self._gitrepo, 'log', commit],
-                stderr=self._errfile
-            )
-        except CalledProcessError as e:
-            print "commit_log error: %s" % str(e)
-            return None
+        return check_output(
+            ['git', '--git-dir', self._gitrepo, 'log', commit],
+            stderr=self._errfile
+        )
 
     def commit_parents(self, commit):
         """
@@ -193,28 +178,21 @@ class GitOperations(object):
         if path:
             path += "/"
 
-        try:
-            contents = self.cached_command(['ls-tree',
-                    commit, path]).splitlines()
+        contents = self.cached_command(['ls-tree',
+                commit, path]).splitlines()
 
-            self.fill_trees(commit, contents)
+        self.fill_trees(commit, contents)
 
-            contents = [c.split(" ")[-1].split("\t")[-1].split("/")[-1] for c in contents]
-            return contents
-        except CalledProcessError as e:
-            print "directory_contents error: %s" % str(e)
-            return []
+        contents = [c.split(" ")[-1].split("\t")[-1].split("/")[-1] for c in contents]
+        return contents
 
     def is_dir(self, commit, path):
         if commit in self._trees:
             return path in self._trees[commit]
-        try:
-            object_type = self.cached_command(['cat-file', '-t',
-                                               '--allow-unknown-type',
-                                               "%s:%s" % (commit, path)]).strip()
-            return object_type == "tree"
-        except CalledProcessError as e:
-            return False
+        object_type = self.cached_command(['cat-file', '-t',
+                                           '--allow-unknown-type',
+                                           "%s:%s" % (commit, path)]).strip()
+        return object_type == "tree"
 
     def file_contents(self, commit, path):
         return check_output(['git', '--git-dir', self._gitrepo, 'show',
