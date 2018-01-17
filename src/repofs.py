@@ -72,7 +72,7 @@ class RepoFS(Operations):
         """ Return directory entries for path elements under the /commits
         entry. """
 
-        elements = path.split("/", 5)[2:]
+        elements = path.split("/", 6)[2:]
         elements[:3] = [int(x) for x in elements[:3]]
         self._verify_date_path(elements[:3])
         # Precondition: path represents a valid date
