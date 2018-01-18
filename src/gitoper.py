@@ -12,7 +12,7 @@ class GitOperations(object):
         self._gitrepo = os.path.join(repo, '.git')
         self._pygit = Repository(repo)
         self._errfile = open(errpath, "w+", 0)
-        self._cache = {}
+        self._commands = {}
         self._caching = caching
         self._trees = {}
         self._sizes = {}
@@ -30,8 +30,8 @@ class GitOperations(object):
 
         list = ['git', '--git-dir', self._gitrepo] + list
         command = " ".join(list)
-        if command in self._cache:
-            return self._cache[command]
+        if command in self._commands:
+            return self._commands[command]
         else:
             try:
                 # print(command)
@@ -47,7 +47,7 @@ class GitOperations(object):
                     self._errfile.write(message)
                     out = None
             if self._caching:
-                self._cache[command] = out
+                self._commands[command] = out
             return out
 
     def _get_entry(self, obj):
