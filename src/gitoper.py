@@ -182,7 +182,10 @@ class GitOperations(object):
             tree = self._get_entry(self._pygit[commit].tree)
         else:
             path += "/"
-            tree = self._get_entry(self._pygit[commit].tree[path])
+            try:
+                tree = self._get_entry(self._pygit[commit].tree[path])
+            except KeyError:
+                return []
 
         contents = [c.name for c in tree]
 
@@ -195,10 +198,16 @@ class GitOperations(object):
         if commit in self._trees and path in self._trees[commit]:
             return True
 
-        return self._get_entry(self._pygit[commit].tree[path]).type == GIT_OBJ_TREE
+        try:
+            return self._get_entry(self._pygit[commit].tree[path]).type == GIT_OBJ_TREE
+        except KeyError:
+            return False
 
     def file_contents(self, commit, path):
-        return self._get_entry(self._pygit[commit].tree[path]).data
+        try:
+            return self._get_entry(self._pygit[commit].tree[path]).data
+        except KeyError:
+            return ""
 
     def file_size(self, commit, path):
         if not commit in self._sizes:
