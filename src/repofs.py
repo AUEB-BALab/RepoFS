@@ -280,8 +280,10 @@ def main(repo_path, mount, nocache):
         raise Exception("Not a git repository")
 
     sys.stderr.write("Examining repository.  Please wait..\n")
+    start = datetime.datetime.now()
     repo = RepoFS(repo_path, mount, nocache)
-    sys.stderr.write("Ready!\n")
+    end = datetime.datetime.now()
+    sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
     sys.stderr.write("Repository %s is now visible at %s\n" % (repo_path,
                                                                mount))
     FUSE(repo, mount, nothreads=True, foreground=True)
