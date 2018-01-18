@@ -243,10 +243,10 @@ class GitOperations(object):
         if path in self._sizes[commit]:
             return self._sizes[commit][path]
 
-        contents = self.file_contents(commit, path)
-        size = 0
-        if contents:
-            size = len(contents)
+        try:
+            size = self._get_entry(self._pygit[commit].tree[path]).size
+        except KeyError:
+            size = 0
 
         self._sizes[commit][path] = size
         return size
