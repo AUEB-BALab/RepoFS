@@ -19,6 +19,11 @@ git add file_a file_b
 date_commit 2005-06-07 -a -m 'Add files a, b'
 git tag t20050607
 
+echo "Contents" >> file_a
+
+git add file_a
+date_commit 2005-06-10 -a -m 'Update file a'
+
 # Commit in different day
 git add file_c
 date_commit 2005-06-30 -m 'Add file c'

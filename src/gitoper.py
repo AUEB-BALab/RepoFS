@@ -3,12 +3,14 @@ import os
 import sys
 
 from subprocess import check_output, CalledProcessError, call
+from pygit2 import Repository, GIT_OBJ_TREE
 
 
 class GitOperations(object):
     def __init__(self, repo, caching, errpath="giterr.log"):
         self.repo = repo
         self._gitrepo = os.path.join(repo, '.git')
+        self._pygit = Repository(repo)
         self._errfile = open(errpath, "w+", 0)
         self._cache = {}
         self._caching = caching
@@ -49,22 +51,26 @@ class GitOperations(object):
                 self._cache[command] = out
             return out
 
+    def _get_entry(self, obj):
+        return self._pygit[obj.id]
+
     def fill_trees(self, commit, contents):
         if not commit in self._trees:
             self._trees[commit] = set([''])
 
         trees = []
         for cont in contents:
-            splitted = cont.split(" ")
-            path = splitted[-1].split("\t")[-1]
-            if splitted[1] == "tree" and path not in self._trees[commit]:
-                trees.append(path)
+            if cont[1] == "tree" and cont[0] not in self._trees[commit]:
+                trees.append(cont[0])
 
         self._trees[commit].update(trees)
 
     def _first_year(self):
         """
         Returns the year of the repo's first commit(s)
+        Not implemented using pygit2 because its faster
+        to get the year via shell command and it creates
+        only one process on boot time.
         """
         first_years = self.cached_command(['log', '--max-parents=0',
                                          '--date=format:%Y',
@@ -77,11 +83,9 @@ class GitOperations(object):
         """
         Returns the year of the repo's last commit
         """
-        return int(self.cached_command(['log', '-n', '1',
-                                         '--date=format:%Y',
-                                         '--pretty=%ad',
-                                         'master']
-                                         ))
+        return datetime.datetime.fromtimestamp(
+            self._pygit[self._pygit.head.target].commit_time
+        ).year
 
     def branches(self):
         """
@@ -175,28 +179,36 @@ class GitOperations(object):
         Returns the contents of the directory
         specified by `path`
         """
-        if path:
+        if not path:
+            tree = self._get_entry(self._pygit[commit].tree)
+        else:
             path += "/"
+            try:
+                tree = self._get_entry(self._pygit[commit].tree[path])
+            except KeyError:
+                return []
 
-        contents = self.cached_command(['ls-tree',
-                commit, path]).splitlines()
+        contents = [c.name for c in tree]
 
-        self.fill_trees(commit, contents)
+        paths_and_names = [(os.path.join(path, c.name), c.type) for c in tree]
+        self.fill_trees(commit, paths_and_names)
 
-        contents = [c.split(" ")[-1].split("\t")[-1].split("/")[-1] for c in contents]
         return contents
 
     def is_dir(self, commit, path):
-        if commit in self._trees:
-            return path in self._trees[commit]
-        object_type = self.cached_command(['cat-file', '-t',
-                                           '--allow-unknown-type',
-                                           "%s:%s" % (commit, path)]).strip()
-        return object_type == "tree"
+        if commit in self._trees and path in self._trees[commit]:
+            return True
+
+        try:
+            return self._get_entry(self._pygit[commit].tree[path]).type == GIT_OBJ_TREE
+        except KeyError:
+            return False
 
     def file_contents(self, commit, path):
-        return check_output(['git', '--git-dir', self._gitrepo, 'show',
-                "%s:%s" % (commit, path)], stderr=self._errfile)
+        try:
+            return self._get_entry(self._pygit[commit].tree[path]).data
+        except KeyError:
+            return ""
 
     def file_size(self, commit, path):
         if not commit in self._sizes:
