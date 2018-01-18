@@ -68,6 +68,9 @@ class GitOperations(object):
     def _first_year(self):
         """
         Returns the year of the repo's first commit(s)
+        Not implemented using pygit2 because its faster
+        to get the year via shell command and it creates
+        only one process on boot time.
         """
         first_years = self.cached_command(['log', '--max-parents=0',
                                          '--date=format:%Y',
@@ -80,11 +83,9 @@ class GitOperations(object):
         """
         Returns the year of the repo's last commit
         """
-        return int(self.cached_command(['log', '-n', '1',
-                                         '--date=format:%Y',
-                                         '--pretty=%ad',
-                                         'master']
-                                         ))
+        return datetime.datetime.fromtimestamp(
+            self._pygit[self._pygit.head.target].commit_time
+        ).year
 
     def branches(self):
         """
