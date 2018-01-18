@@ -3,7 +3,7 @@ import os
 import sys
 
 from subprocess import check_output, CalledProcessError, call
-from pygit2 import Repository, GIT_OBJ_TREE
+from pygit2 import Repository, Commit, GIT_OBJ_TREE
 
 
 class GitOperations(object):
@@ -16,10 +16,9 @@ class GitOperations(object):
         self._caching = caching
         self._trees = {}
         self._sizes = {}
+        self._tags = {}
+        self._branches = {}
         self.years = range(self._first_year(), self._last_year() + 1)
-        # A format for links to link back to commits
-        self._link_format = ['--format=../commits/%cd/%H',
-                             '--date=format:%Y/%m/%d', '--']
 
     def cached_command(self, list, return_exit_code=False):
         """
@@ -129,23 +128,50 @@ class GitOperations(object):
         commits = [commit.strip() for commit in commits]
         return commits
 
+    def _format_to_link(self, commit):
+        time = datetime.datetime.fromtimestamp(commit.commit_time).strftime("%Y/%m/%d")
+        return "../commits/%s/%s" % (time, commit.id)
+
+    def _get_commit_from_ref(self, ref):
+        commit = self._pygit.revparse_single(ref)
+        if isinstance(commit, Commit):
+            return commit
+
+        if hasattr(commit, "target"):
+            return self._pygit[commit.target]
+
+        return None
+
     def last_commit_of_branch(self, branch):
         """
         Returns the last commit of a branch.
         """
-        commit = self.cached_command(['log', '-n', '1', branch] +
-                                     self._link_format
-                                     ).strip()
-        return commit
+        if branch in self._branches:
+            return self._branches[branch]
+
+        commit = self._get_commit_from_ref(branch)
+        path = ""
+        if commit:
+            path = self._format_to_link(commit)
+
+        self._branches[branch] = path
+        return path
 
     def commit_of_tag(self, tag):
         """
         Returns the commit of a tag.
         """
-        commit = self.cached_command(['log', '-n', '1', tag] +
-                                     self._link_format
-                                     ).strip()
-        return commit
+        if tag in self._tags:
+            return self._tags[tag]
+
+        commit = self._get_commit_from_ref(tag)
+        path = ""
+        # tag is pointing to a commit
+        if commit:
+            path = self._format_to_link(commit)
+
+        self._tags[tag] = path
+        return path
 
     def commit_log(self, commit):
         """
