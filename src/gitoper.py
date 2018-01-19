@@ -194,15 +194,6 @@ class GitOperations(object):
         self._tags[tag] = path
         return path
 
-    def commit_log(self, commit):
-        """
-        Returns commit log
-        """
-        return check_output(
-            ['git', '--git-dir', self._gitrepo, 'log', commit],
-            stderr=self._errfile
-        )
-
     def commit_parents(self, commit):
         """
         Returns commit parents

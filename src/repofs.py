@@ -104,22 +104,10 @@ class RepoFS(Operations):
                 return dirents
 
     def _commit_metadata_names(self):
-        return self._commit_metadata_folders() + self._commit_metadata_files()
+        return self._commit_metadata_folders()
 
     def _commit_metadata_folders(self):
         return ['.git-parents', '.git-descendants', '.git-names']
-
-    def _commit_metadata_files(self):
-        return ['.git-log']
-
-    def _get_metadata_content(self, path):
-        commit = self._commit_from_path(path)
-        metaname = self._git_path(path)
-
-        if metaname == '.git-log':
-            return self._git.commit_log(commit)
-        else:
-            return ""
 
     def _get_metadata_folder(self, path):
         commit = self._commit_from_path(path)
@@ -194,8 +182,6 @@ class RepoFS(Operations):
                 # Includes commit hash
                 return elements[4] in self._git.commits(
                     elements[1], elements[2], elements[3])
-            elif elements[5] in self._commit_metadata_files():
-                return False
             elif elements[5] in self._commit_metadata_folders():
                 return True
             else:
@@ -207,15 +193,9 @@ class RepoFS(Operations):
         return False
 
     def _get_file_size(self, path):
-        if self._git_path(path) in self._commit_metadata_files():
-            return len(self._get_metadata_content(path))
-
         return self._git.file_size(self._commit_from_path(path), self._git_path(path))
 
     def _get_file_contents(self, path):
-        if self._git_path(path) in self._commit_metadata_files():
-            return self._get_metadata_content(path)
-
         return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
 
     def getattr(self, path, fh=None):
