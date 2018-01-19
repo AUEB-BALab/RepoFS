@@ -275,20 +275,7 @@ class RepoFS(Operations):
     utimens=None
 
 
-def main(repo_path, mount, nocache):
-    if not os.path.exists(os.path.join(repo_path, '.git')):
-        raise Exception("Not a git repository")
-
-    sys.stderr.write("Examining repository.  Please wait..\n")
-    start = datetime.datetime.now()
-    repo = RepoFS(repo_path, mount, nocache)
-    end = datetime.datetime.now()
-    sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
-    sys.stderr.write("Repository %s is now visible at %s\n" % (repo_path,
-                                                               mount))
-    FUSE(repo, mount, nothreads=True, foreground=True)
-
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("repo", help="Git repository to be processed.")
     parser.add_argument("mount", help="Path where the FileSystem will be mounted." \
@@ -302,5 +289,17 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
 
-    main(args.repo, args.mount, args.nocache)
+    if not os.path.exists(os.path.join(args.repo, '.git')):
+        raise Exception("Not a git repository")
 
+    sys.stderr.write("Examining repository.  Please wait..\n")
+    start = datetime.datetime.now()
+    repo = RepoFS(args.repo, args.mount, args.nocache)
+    end = datetime.datetime.now()
+    sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
+    sys.stderr.write("Repository %s is now visible at %s\n" % (args.repo,
+                                                               args.mount))
+    FUSE(repo, args.mount, nothreads=True, foreground=True)
+
+if __name__ == '__main__':
+    main()
