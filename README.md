@@ -2,7 +2,7 @@ RepoFS
 ======
 Filesystem view of version control repositories
 
-Installing Dependencies
+Installation
 =======================
 
 1. `apt-get install git python-dev python libfuse-dev python-pip libgit2-dev`
@@ -24,3 +24,8 @@ libgit2 Notes
 
 If you encounter problems installing `pygit2` follow the instructions
 on this [page](https://gist.github.com/bendavis78/3157948).
+
+Usage
+=====
+
+`repofs <git_repo> <mount_dir>`
