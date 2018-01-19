@@ -81,6 +81,8 @@ class GitOperations(object):
         tree = self._get_tree(commit, path)
         paths_and_names = [(os.path.join(path, c[0]), c[1]) for c in tree]
         self._fill_trees(commit, paths_and_names)
+        if not commit in self._trees_filled:
+            self._trees_filled[commit] = set()
         self._trees_filled[commit].update([path])
 
     def _first_year(self):

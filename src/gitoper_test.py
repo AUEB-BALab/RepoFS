@@ -51,11 +51,21 @@ class GitOperationsTestCase(TestCase):
         trees = [(d, "tree") for d in dirs]
         diff = [("file_a", "blob"), ("file_b", "dunno")]
 
-        self.go.fill_trees(self.master_hash, trees + diff)
-        self.assertEqual(self.go._trees[self.master_hash], set(dirs + ['']))
+        self.go._fill_trees(self.master_hash, trees + diff)
+        self.assertEqual(self.go._trees[self.master_hash], set(dirs))
 
-        self.go.fill_trees(self.master_hash, trees + diff)
-        self.assertEqual(self.go._trees[self.master_hash], set(dirs + ['']))
+        self.go._fill_trees(self.master_hash, trees + diff)
+        self.assertEqual(self.go._trees[self.master_hash], set(dirs))
+
+    def test_get_tree(self):
+        self.assertEqual(self.go._get_tree(self.master_hash, "dir_a"), [("dir_b", "tree"), ("file_aa", "blob")])
+        self.assertEqual(self.go._get_tree(self.master_hash, ""), [("dir_a", "tree")] + [("file_" + c, "blob") for c in "abcdr"])
+
+    def test_cache_trees(self):
+        self.go._cache_tree(self.master_hash, "dir_a")
+
+        self.assertEqual(self.go._trees[self.master_hash], set(["dir_a/dir_b"]))
+        self.assertEqual(self.go._trees_filled[self.master_hash], set(["dir_a"]))
 
 if __name__ == "__main__":
     main()
