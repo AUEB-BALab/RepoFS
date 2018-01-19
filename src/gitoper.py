@@ -15,6 +15,7 @@ class GitOperations(object):
         self._commands = {}
         self._caching = caching
         self._trees = {}
+        self._trees_filled = {}
         self._sizes = {}
         self._tags = {}
         self._branches = {}
@@ -53,9 +54,9 @@ class GitOperations(object):
     def _get_entry(self, obj):
         return self._pygit[obj.id]
 
-    def fill_trees(self, commit, contents):
+    def _fill_trees(self, commit, contents):
         if not commit in self._trees:
-            self._trees[commit] = set([''])
+            self._trees[commit] = set()
 
         trees = []
         for cont in contents:
@@ -63,6 +64,24 @@ class GitOperations(object):
                 trees.append(cont[0])
 
         self._trees[commit].update(trees)
+
+    def _get_tree(self, commit, path):
+        if not path:
+            tree = self._get_entry(self._pygit[commit].tree)
+        else:
+            path += "/"
+            try:
+                tree = self._get_entry(self._pygit[commit].tree[path])
+            except KeyError:
+                return []
+
+        return [(c.name, c.type) for c in tree]
+
+    def _cache_tree(self, commit, path):
+        tree = self._get_tree(commit, path)
+        paths_and_names = [(os.path.join(path, c[0]), c[1]) for c in tree]
+        self._fill_trees(commit, paths_and_names)
+        self._trees_filled[commit].update([path])
 
     def _first_year(self):
         """
@@ -205,30 +224,26 @@ class GitOperations(object):
         Returns the contents of the directory
         specified by `path`
         """
-        if not path:
-            tree = self._get_entry(self._pygit[commit].tree)
-        else:
-            path += "/"
-            try:
-                tree = self._get_entry(self._pygit[commit].tree[path])
-            except KeyError:
-                return []
 
-        contents = [c.name for c in tree]
-
-        paths_and_names = [(os.path.join(path, c.name), c.type) for c in tree]
-        self.fill_trees(commit, paths_and_names)
-
-        return contents
+        tree = self._get_tree(commit, path)
+        return [c[0] for c in tree]
 
     def is_dir(self, commit, path):
         if commit in self._trees and path in self._trees[commit]:
             return True
 
-        try:
-            return self._get_entry(self._pygit[commit].tree[path]).type == GIT_OBJ_TREE
-        except KeyError:
-            return False
+        if commit not in self._trees:
+            self._trees[commit] = set([''])
+            self._trees_filled[commit] = set([''])
+            self._cache_tree(commit, '')
+
+        elements = path.split("/")
+        for i in range(len(elements) - 1):
+            subpath = "/".join(elements[:i + 1])
+            if subpath in self._trees[commit] and subpath not in self._trees_filled[commit]:
+                self._cache_tree(commit, subpath)
+
+        return path in self._trees[commit]
 
     def file_contents(self, commit, path):
         try:
