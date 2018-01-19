@@ -5,11 +5,11 @@ Filesystem view of version control repositories
 Installing Dependencies
 =======================
 
-1. Install [libfuse](https://github.com/libfuse/libfuse) following
+1. `apt-get install git python-dev python libfuse-dev python-pip libgit2-dev`
+2. Install [libfuse](https://github.com/libfuse/libfuse) following
 the instructions on its GitHub page. See [libfuse-notes](#libfuse-notes)
 for installation issues.
-2. Install [fusepy](https://github.com/terencehonles/fusepy) using
-`pip install fusepy`
+3. Run `python setup.py install`
 
 libfuse Notes
 ==================
@@ -18,3 +18,9 @@ libfuse Notes
 newest version. (pip3 has the >=0.38 version that libfuse requires)
 2. Install the `ninja` and the `ninja-build` package using
 `apt-get install ninja ninja-build` instead of just the `ninja` package.
+
+libgit2 Notes
+=============
+
+If you encounter problems installing `pygit2` follow the instructions
+on this [page](https://gist.github.com/bendavis78/3157948).
