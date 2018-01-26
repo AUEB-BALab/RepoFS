@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 import sys
 
 from subprocess import check_output, CalledProcessError, call
@@ -21,12 +22,14 @@ class GitOperations(object):
         self._branches = {}
         self.years = range(self._first_year(), self._last_year() + 1)
 
-    def cached_command(self, list, return_exit_code=False):
+    def cached_command(self, list, return_exit_code=False, silent=False):
         """
         Executes the specified git command and returns its result.
         Subsequent executions of the same command return the cached result
         If return_exit_code is set, then the return value is True of False
         depending on whether the command exited with 0 or not.
+	If silent is true then failed executions return None,
+	without displaying an error. 
         """
 
         list = ['git', '--git-dir', self._gitrepo] + list
@@ -42,6 +45,8 @@ class GitOperations(object):
             except CalledProcessError as e:
                 if return_exit_code:
                     out = False
+		elif silent:
+		    out = None
                 else:
                     message = "Error calling %s: %s" % (command, str(e))
                     sys.stderr.write(message)
@@ -92,10 +97,21 @@ class GitOperations(object):
         to get the year via shell command and it creates
         only one process on boot time.
         """
+
+	# Obtain head branch
+	head_branch = self.cached_command(['config', '--name-only',
+	  '--get-regexp', 'branch.*remote'], return_exit_code = False,
+	  silent=True)
+	if head_branch:
+	  head_branch = re.sub(r'^branch\.(.*)\.remote\n$', r'\1', head_branch)
+	else:
+	  head_branch = 'master'
+	print('Hed_branch[%s]' % head_branch)
+
         first_years = self.cached_command(['log', '--max-parents=0',
                                          '--date=format:%Y',
                                          '--pretty=%ad',
-                                         'master']
+                                         head_branch]
                                          ).splitlines()
         return int(sorted(first_years)[0])
 
