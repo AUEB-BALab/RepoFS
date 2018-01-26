@@ -106,7 +106,6 @@ class GitOperations(object):
 	  head_branch = re.sub(r'^branch\.(.*)\.remote\n$', r'\1', head_branch)
 	else:
 	  head_branch = 'master'
-	print('Hed_branch[%s]' % head_branch)
 
         first_years = self.cached_command(['log', '--max-parents=0',
                                          '--date=format:%Y',
@@ -119,9 +118,15 @@ class GitOperations(object):
         """
         Returns the year of the repo's last commit
         """
-        return datetime.datetime.fromtimestamp(
-            self._pygit[self._pygit.head.target].commit_time
-        ).year
+        most_recent_branch = self.cached_command(['branch', '-a',
+          '--sort=-committerdate']).splitlines()[0]
+	# Remote leading * (for HEAD) and spaces
+	most_recent_branch = re.sub(r'^\*?\s+', r'', most_recent_branch)
+        return int(self.cached_command(['log', '-n', '1',
+                                         '--date=format:%Y',
+                                         '--pretty=%ad',
+                                         most_recent_branch]
+                                         ))
 
     def branches(self):
         """
