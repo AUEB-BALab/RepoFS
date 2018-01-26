@@ -166,7 +166,7 @@ class GitOperations(object):
                                        '%04d-%02d-%02dT00:00:00' % (end.year,
                                                            end.month,
                                                            end.day),
-                                       '--pretty=%H']).splitlines()
+                                       '--all', '--pretty=%H']).splitlines()
         commits = [commit.strip() for commit in commits]
         return commits
 
