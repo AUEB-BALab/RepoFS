@@ -39,7 +39,7 @@ class RepoFS(Operations):
         return range(1, self._days_per_month(year)[month - 1] + 1)
 
     def _get_root(self):
-        return ['commits', 'branches', 'tags']
+        return ['commits-by-date', 'commits-by-hash', 'branches', 'tags']
 
     def _get_branches(self):
         branches = self._git.branches()
@@ -69,31 +69,31 @@ class RepoFS(Operations):
         return [str(x) for x in l]
 
     def _get_commits(self, path):
-        """ Return directory entries for path elements under the /commits
-        entry. """
+        """ Return directory entries for path elements under the
+        /commits-by-date entry. """
 
         elements = path.split("/", 6)[2:]
         elements[:3] = [int(x) for x in elements[:3]]
         self._verify_date_path(elements[:3])
         # Precondition: path represents a valid date
         if len(elements) == 0:
-            # /commits
+            # /commits-by-date
             return self._string_list(self._git.years)
         elif len(elements) == 1:
-            # /commits/yyyy
+            # /commits-by-date/yyyy
             return self._string_list(range(1, 13))
         elif len(elements) == 2:
-            # /commits/yyyy/mm
+            # /commits-by-date/yyyy/mm
             return self._string_list(self._month_dates(elements[0],
                                                        elements[1]))
         elif len(elements) == 3:
-            # /commits/yyyy/mm/dd
+            # /commits-by-date/yyyy/mm/dd
             return self._git.commits(elements[0], elements[1],
                                              elements[2])
         else:
             if len(elements) < 5:
                 elements.append('')
-            # /commits/yyyy/mm/dd/hash
+            # /commits-by-date/yyyy/mm/dd/hash
             if elements[4] in self._commit_metadata_folders():
                 return self._get_metadata_folder(path)
             else:
@@ -131,7 +131,7 @@ class RepoFS(Operations):
 
     def _git_path(self, path):
         """ Return the path underneath a git commit directory.
-            For example, the path of /commits/2017/12/28/ed34f8.../src/foo
+            For example, the path of /commits-by-date/2017/12/28/ed34f8.../src/foo
             is src/foo.  """
         if path.count("/") == 5:
             return ""
@@ -139,7 +139,7 @@ class RepoFS(Operations):
             return path.split("/", 6)[-1]
 
     def _is_symlink(self, path):
-        if path.startswith("/commits/") and\
+        if path.startswith("/commits-by-date/") and\
                 path.split("/")[-2] in self._commit_metadata_folders() and\
                 path.split("/")[-1] in self._get_commits():
             return True
@@ -153,8 +153,8 @@ class RepoFS(Operations):
         return False
 
     def _target_from_symlink(self, path):
-        if path.startswith("/commits/"):
-            return os.path.join(self.mount, "commits", path.split("/")[-1] + "/")
+        if path.startswith("/commits-by-date/"):
+            return os.path.join(self.mount, "commits-by-date", path.split("/")[-1] + "/")
 
         if path.startswith("/branches/"):
             return self._commit_from_branch(path.split("/")[-1]) + "/"
@@ -173,7 +173,7 @@ class RepoFS(Operations):
             return True
 
         elements = path.split("/", 6)[1:]
-        if elements[0] == 'commits':
+        if elements[0] == 'commits-by-date':
             elements[1:4] = [int(x) for x in elements[1:4]]
             self._verify_date_path(elements[1:4])
             if len(elements) < 5:
@@ -219,7 +219,7 @@ class RepoFS(Operations):
         dirents = ['.', '..']
         if path == "/":
             dirents.extend(self._get_root())
-        elif path.startswith("/commits"):
+        elif path.startswith("/commits-by-date"):
             dirents.extend(self._get_commits(path))
         elif path == "/branches":
             dirents.extend(self._get_branches())

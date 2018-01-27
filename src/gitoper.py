@@ -172,7 +172,7 @@ class GitOperations(object):
 
     def _format_to_link(self, commit):
         time = datetime.datetime.fromtimestamp(commit.commit_time).strftime("%Y/%m/%d")
-        return "../commits/%s/%s" % (time, commit.id)
+        return "../commits-by-date/%s/%s" % (time, commit.id)
 
     def _get_commit_from_ref(self, ref):
         commit = self._pygit.revparse_single(ref)
