@@ -68,11 +68,30 @@ class RepoFS(Operations):
         """ Return list l as a list of strings """
         return [str(x) for x in l]
 
-    def _get_commits(self, path):
+    def _get_commits_from_path_list(self, elements):
+        """ Given a path's elements starting from a commit's hash
+        return the corresponding contents of a commits directory.  """
+        if len(elements) < 2:
+            elements.append('')
+        # Last two elements from /commits-by-hash/hash or
+        # /commits-by-date/yyyy/mm/dd/hash
+        if elements[1] in self._commit_metadata_folders():
+            return self._get_metadata_folder(path)
+        else:
+            dirents = self._git.directory_contents(elements[0],
+                                                   elements[1])
+            if elements[1] == '': # on the root of a commit folder
+                dirents += self._commit_metadata_names()
+            return dirents
+
+    def _get_commits_by_date(self, path):
         """ Return directory entries for path elements under the
         /commits-by-date entry. """
 
         elements = path.split("/", 6)[2:]
+        # Remove trailing empty slash
+        if len(elements) > 0 and elements[-1] == '':
+            del elements[-1]
         elements[:3] = [int(x) for x in elements[:3]]
         self._verify_date_path(elements[:3])
         # Precondition: path represents a valid date
@@ -88,20 +107,26 @@ class RepoFS(Operations):
                                                        elements[1]))
         elif len(elements) == 3:
             # /commits-by-date/yyyy/mm/dd
-            return self._git.commits(elements[0], elements[1],
+            return self._git.commits_by_date(elements[0], elements[1],
                                              elements[2])
         else:
-            if len(elements) < 5:
-                elements.append('')
             # /commits-by-date/yyyy/mm/dd/hash
-            if elements[4] in self._commit_metadata_folders():
-                return self._get_metadata_folder(path)
-            else:
-                dirents = self._git.directory_contents(elements[3],
-                                                       elements[4])
-                if elements[4] == '': # on the root of a commit folder
-                    dirents += self._commit_metadata_names()
-                return dirents
+            return self._get_commits_from_path_list(elements[3:])
+
+    def _get_commits_by_hash(self, path):
+        """ Return directory entries for path elements under the
+        /commits-by-hash entry. """
+
+        elements = path.split("/", 3)[2:]
+        # Remove trailing empty slash
+        if len(elements) > 0 and elements[-1] == '':
+            del elements[-1]
+        if len(elements) == 0:
+            # /commits-by-hash
+            return self._git.all_commits()
+        else:
+            # /commits-by-hash/hash
+            return self._get_commits_from_path_list(elements)
 
     def _commit_metadata_names(self):
         return self._commit_metadata_folders()
@@ -133,40 +158,61 @@ class RepoFS(Operations):
         """ Return the path underneath a git commit directory.
             For example, the path of /commits-by-date/2017/12/28/ed34f8.../src/foo
             is src/foo.  """
-        if path.count("/") == 5:
-            return ""
+        if path.startswith("/commits-by-date/"):
+            if path.count("/") == 5:
+                return ""
+            else:
+                return path.split("/", 6)[-1]
+        elif path.startswith('/commits-by-hash/'):
+            if path.count("/") == 2:
+                return ""
+            else:
+                return path.split("/", 3)[-1]
         else:
-            return path.split("/", 6)[-1]
+            raise FuseOSError(errno.ENOENT)
 
     def _is_symlink(self, path):
-        if path.startswith("/commits-by-date/") and\
-                path.split("/")[-2] in self._commit_metadata_folders() and\
-                path.split("/")[-1] in self._get_commits():
+        if (path.startswith("/commits-by-date/")  and
+                path.split("/")[-2] in self._commit_metadata_folders() and
+                path.split("/")[-1] in self._get_commits_by_date()):
+            # XXX Must also check number of slashes
             return True
-
-        if path.startswith("/branches") and path.count("/") == 2:
+        elif (path.startswith("/commits-by-hash/") and
+                path.split("/")[-2] in self._commit_metadata_folders() and
+                path.split("/")[-1] in self._get_commits_by_hash()):
             return True
-
-        if path.startswith("/tags") and path.count("/") == 2:
+        elif path.startswith("/branches") and path.count("/") == 2:
             return True
-
+        elif path.startswith("/tags") and path.count("/") == 2:
+            return True
         return False
 
     def _target_from_symlink(self, path):
         if path.startswith("/commits-by-date/"):
             return os.path.join(self.mount, "commits-by-date", path.split("/")[-1] + "/")
-
-        if path.startswith("/branches/"):
+        elif path.startswith("/commits-by-hash/"):
+            return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
+        elif path.startswith("/branches/"):
             return self._commit_from_branch(path.split("/")[-1]) + "/"
-
-        if path.startswith("/tags/"):
+        elif path.startswith("/tags/"):
             return self._commit_from_tag(path.split("/")[-1]) + "/"
+        else:
+            raise FuseOSError(errno.ENOENT)
 
     def _commit_from_path(self, path):
-        if path.count("/") < 5:
-            return ""
+        if path.startswith("/commits-by-date/"):
+            if path.count("/") < 5:
+                return ""
+            else:
+                return path.split("/", 6)[5]
+        elif path.startswith('/commits-by-hash/'):
+            if path.count("/") < 2:
+                return ""
+            else:
+                return path.split("/", 3)[2]
+        else:
+            raise FuseOSError(errno.ENOENT)
 
-        return path.split("/", 6)[5]
 
     def _is_dir(self, path):
         if path == "/":
@@ -180,12 +226,22 @@ class RepoFS(Operations):
                 return True
             elif len(elements) == 5:
                 # Includes commit hash
-                return elements[4] in self._git.commits(
+                return elements[4] in self._git.commits_by_date(
                     elements[1], elements[2], elements[3])
             elif elements[5] in self._commit_metadata_folders():
                 return True
             else:
                 return self._git.is_dir(elements[4], elements[5])
+        elif elements[0] == 'commits-by-hash':
+            if len(elements) < 2:
+                return True
+            elif len(elements) == 2:
+                # Includes commit hash
+                return elements[1] in self._git.all_commits()
+            elif elements[2] in self._commit_metadata_folders():
+                return True
+            else:
+                return self._git.is_dir(elements[1], elements[2])
         elif elements == ['branches']:
             return True
         elif elements == ['tags']:
@@ -220,7 +276,9 @@ class RepoFS(Operations):
         if path == "/":
             dirents.extend(self._get_root())
         elif path.startswith("/commits-by-date"):
-            dirents.extend(self._get_commits(path))
+            dirents.extend(self._get_commits_by_date(path))
+        elif path.startswith("/commits-by-hash"):
+            dirents.extend(self._get_commits_by_hash(path))
         elif path == "/branches":
             dirents.extend(self._get_branches())
         elif path == "/tags":

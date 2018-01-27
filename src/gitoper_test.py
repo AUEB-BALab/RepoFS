@@ -24,6 +24,13 @@ class GitOperationsTestCase(TestCase):
     def test_years(self):
         self.assertEquals(self.go.years, [2005, 2006, 2007, 2008, 2009])
 
+    def test_commits_by_date(self):
+        self.assertEquals(len(self.go.commits_by_date(2009,10,11)), 2)
+        self.assertEquals(len(self.go.commits_by_date(2009,10,12)), 0)
+
+    def test_all_commits(self):
+        self.assertGreater(len(self.go.all_commits()), 3)
+
     def test_file_size(self):
         self.assertTrue(self.go.file_size(self.master_hash, "file_a") > 0)
         self.assertEqual(self.go.file_size(self.master_hash, "file_b"), 0)

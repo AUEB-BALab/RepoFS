@@ -150,7 +150,7 @@ class GitOperations(object):
         tags = [ref.strip() for ref in tagrefs]
         return tags
 
-    def commits(self, y, m, d):
+    def commits_by_date(self, y, m, d):
         """
         Returns a list of commit hashes for the given year, month, day
         """
@@ -167,6 +167,14 @@ class GitOperations(object):
                                                            end.month,
                                                            end.day),
                                        '--all', '--pretty=%H']).splitlines()
+        commits = [commit.strip() for commit in commits]
+        return commits
+
+    def all_commits(self):
+        """
+        Returns a list of all commit hashes
+        """
+        commits = self.cached_command(['log', '--all', '--pretty=%H']).splitlines()
         commits = [commit.strip() for commit in commits]
         return commits
 

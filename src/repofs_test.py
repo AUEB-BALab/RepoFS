@@ -13,7 +13,7 @@ class RepoFSTestCase(TestCase):
             if e.errno != errno.EEXIST:
                 raise e
         self.repofs = RepoFS('test_repo', 'mnt', True)
-        self.last_commit = '/commits-by-date/2009/10/11/' + self.repofs._get_commits(
+        self.last_commit = '/commits-by-date/2009/10/11/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2009/10/11')[0]
 
     def test_days_per_month(self):
@@ -46,18 +46,24 @@ class RepoFSTestCase(TestCase):
         self.repofs._verify_date_path([2005, 6, 1])
         self.repofs._verify_date_path([2005, 1, 31])
 
-    def test_verify_commits(self):
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date')), 5)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005')), 12)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/6')), 30)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/6/7')), 1)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/6/6')), 0)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/6/8')), 0)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/6/29')), 0)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/6/30')), 1)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/7/1')), 2)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2009/10/11')), 2)
-        self.assertEqual(len(self.repofs._get_commits('/commits-by-date/2005/6/30')[0]), 40)
+    def test_verify_commits_by_date(self):
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date')), 5)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/')), 5)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005')), 12)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6')), 30)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6/7')), 1)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6/6')), 0)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6/8')), 0)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6/29')), 0)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6/30')), 1)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/7/1')), 2)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2009/10/11')), 2)
+        self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6/30')[0]), 40)
+
+    def test_verify_commits_by_hash(self):
+        self.assertGreater(len(self.repofs._get_commits_by_hash('/commits-by-hash')), 3)
+        self.assertGreater(len(self.repofs._get_commits_by_hash('/commits-by-hash/')), 3)
+        self.assertEqual(len(self.repofs._get_commits_by_hash('/commits-by-hash/')[0]), 40)
 
     def test_git_path(self):
         self.assertEqual(self.repofs._git_path(
@@ -68,7 +74,7 @@ class RepoFSTestCase(TestCase):
             '/commits-by-date/2017/12/28/ed34f8...'), '')
 
     def test_verify_commit_files(self):
-        entries = self.repofs._get_commits(self.last_commit)
+        entries = self.repofs._get_commits_by_date(self.last_commit)
         self.assertTrue(entries, 'file_a' in entries)
 
     def test_is_dir(self):
