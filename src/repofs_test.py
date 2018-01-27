@@ -13,7 +13,11 @@ class RepoFSTestCase(TestCase):
             if e.errno != errno.EEXIST:
                 raise e
         self.repofs = RepoFS('test_repo', 'mnt', True)
-        self.last_commit = '/commits-by-date/2009/10/11/' + self.repofs._get_commits_by_date(
+        self.first_commit = '/commits-by-date/2005/6/7/' + self.repofs._get_commits_by_date(
+            '/commits-by-date/2005/6/7')[0]
+        self.second_commit = '/commits-by-date/2006/10/11/' + self.repofs._get_commits_by_date(
+            '/commits-by-date/2009/10/11')[0]
+        self.recent_commit = '/commits-by-date/2009/10/11/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2009/10/11')[0]
 
     def test_days_per_month(self):
@@ -46,6 +50,8 @@ class RepoFSTestCase(TestCase):
         self.repofs._verify_date_path([2005, 6, 1])
         self.repofs._verify_date_path([2005, 1, 31])
 
+    def test_verify_commits_parents(self):
+
     def test_verify_commits_by_date(self):
         self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date')), 5)
         self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/')), 5)
@@ -74,7 +80,7 @@ class RepoFSTestCase(TestCase):
             '/commits-by-date/2017/12/28/ed34f8...'), '')
 
     def test_verify_commit_files(self):
-        entries = self.repofs._get_commits_by_date(self.last_commit)
+        entries = self.repofs._get_commits_by_date(self.recent_commit)
         self.assertTrue(entries, 'file_a' in entries)
 
     def test_is_dir(self):
@@ -86,19 +92,19 @@ class RepoFSTestCase(TestCase):
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005/7'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005/7/1'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005/6/7'))
-        self.assertTrue(self.repofs._is_dir(self.last_commit))
-        self.assertTrue(self.repofs._is_dir(self.last_commit + '/dir_a'))
-        self.assertTrue(self.repofs._is_dir(self.last_commit + '/dir_a/dir_b'))
-        self.assertTrue(self.repofs._is_dir(self.last_commit + '/dir_a/dir_b/dir_c'))
-        self.assertFalse(self.repofs._is_dir(self.last_commit + '/file_a'))
-        self.assertFalse(self.repofs._is_dir(self.last_commit + '/.git-log'))
-        self.assertFalse(self.repofs._is_dir(self.last_commit + '/dir_a/file_aa'))
+        self.assertTrue(self.repofs._is_dir(self.recent_commit))
+        self.assertTrue(self.repofs._is_dir(self.recent_commit + '/dir_a'))
+        self.assertTrue(self.repofs._is_dir(self.recent_commit + '/dir_a/dir_b'))
+        self.assertTrue(self.repofs._is_dir(self.recent_commit + '/dir_a/dir_b/dir_c'))
+        self.assertFalse(self.repofs._is_dir(self.recent_commit + '/file_a'))
+        self.assertFalse(self.repofs._is_dir(self.recent_commit + '/.git-log'))
+        self.assertFalse(self.repofs._is_dir(self.recent_commit + '/dir_a/file_aa'))
 
     def test_target_from_symlink(self):
         self.assertEqual(self.repofs._target_from_symlink('/tags/t20091011ca'),
-                         '..' + self.last_commit + '/')
+                         '..' + self.recent_commit + '/')
         self.assertEqual(self.repofs._target_from_symlink('/branches/master'),
-                         '..' + self.last_commit + '/')
+                         '..' + self.recent_commit + '/')
 
 if __name__ == "__main__":
     main()
