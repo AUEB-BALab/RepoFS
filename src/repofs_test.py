@@ -51,6 +51,7 @@ class RepoFSTestCase(TestCase):
         self.repofs._verify_date_path([2005, 1, 31])
 
     def test_verify_commits_parents(self):
+        yield;
 
     def test_verify_commits_by_date(self):
         self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date')), 5)
