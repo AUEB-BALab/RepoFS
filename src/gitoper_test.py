@@ -5,7 +5,7 @@ from gitoper import GitOperations
 class GitOperationsTestCase(TestCase):
     def setUp(self):
         self.go = GitOperations('test_repo', True)
-        self.master_hash = self.go.last_commit_of_branch("master").split("/")[-1]
+        self.master_hash = self.go.commit_of_ref("master").split("/")[-1]
 
     def test_cached_command(self):
         self.assertEquals(self.go.cached_command(['show', 'master:file_r']),

@@ -19,6 +19,8 @@ class RepoFS(Operations):
         self.mount = mount
         self.nocache = nocache
         self._git = GitOperations(repo, not nocache, "giterr.log")
+        self._branch_refs = ['refs/heads/', 'refs/remotes/']
+        self._tag_refs = ['refs/tags']
 
     def _days_per_month(self, year):
         """ Return an array with the number of days in each month
@@ -41,50 +43,54 @@ class RepoFS(Operations):
     def _get_root(self):
         return ['commits-by-date', 'commits-by-hash', 'branches', 'tags']
 
-    def _is_branch(self, path):
-        """Return true if the specified path refers to a branch"""
-        path = path.split('/')[2:]
-        for branch in self._git.branches():
-            branch = branch.split('/')[1:]
-            if path == branch:
+    def _is_ref(self, path, refs):
+        """Return true if the specified path (e.g. branches/master, or
+        tags/V1.0) refers to one of the specified refs, (e.g.
+        refs/heads or refs/tags). """
+        if path.startswith('/branches'):
+            path = path.split('/')[2:]
+        else:
+            path = path.split('/')[1:]
+        for ref in self._git.refs(refs):
+            ref = ref.split('/')[1:]
+            if path == ref:
                 return True
         return False
 
-    def _is_branch_prefix(self, path):
-        """Return true if the specified path refers to a branch name prefix
-        up to a path separator"""
-        path = path.split('/')[2:]
-        for branch in self._git.branches():
-            branch = branch.split('/')[1:]
-            if path == branch[:len(path)] and len(path) < len(branch):
+    def _is_ref_prefix(self, path, refs):
+        """Return true if the specified path refers to a ref name prefix
+        up to a path separator for the specified refs, e.g.
+        refs/heads or refs/tags. """
+        if path.startswith('/branches'):
+            path = path.split('/')[2:]
+        else:
+            path = path.split('/')[1:]
+        for ref in self._git.refs(refs):
+            ref = ref.split('/')[1:]
+            if path == ref[:len(path)] and len(path) < len(ref):
                 return True
         return False
 
-    def _get_branches(self, path):
-        """Return the branch elements that match the specified path"""
+    def _get_refs(self, path, refs):
+        """Return the ref elements that match the specified path and
+        refs, e.g. refs/heads or refs/tags. """
         path = path.split('/')[2:]
         result = set()
         found = False
         # Find common prefix
-        for branch in self._git.branches():
-            branch = branch.split('/')[1:]
-            # print('Look for path [%s] in branch [%s]' % (path, branch))
-            if path == branch[:len(path)]:
+        for ref in self._git.refs(refs):
+            ref = ref.split('/')[1:]
+            # print('Look for path [%s] in ref [%s]' % (path, ref))
+            if path == ref[:len(path)]:
                 # Common prefix found
                 found = True
-                if len(branch) > len(path):
-                    # print("append %s" % (branch[len(path)]))
-                    result.add(branch[len(path)])
+                if len(ref) > len(path):
+                    # print("append %s" % (ref[len(path)]))
+                    result.add(ref[len(path)])
 
         if not found:
             raise FuseOSError(errno.ENOTDIR)
         return result
-
-    def _get_tags(self):
-        tags = self._git.tags()
-        tags = [tag.split(" ")[1].split("/")[-1] for tag in tags]
-
-        return tags
 
     def _verify_date_path(self, elements):
         """ Raise an exception if the elements array representing a commit
@@ -177,11 +183,8 @@ class RepoFS(Operations):
         else:
             return []
 
-    def _commit_from_branch(self, branch):
-        return self._git.last_commit_of_branch(branch)
-
-    def _commit_from_tag(self, tag):
-        return self._git.commit_of_tag(tag)
+    def _commit_from_ref(self, ref):
+        return self._git.commit_of_ref(ref)
 
     def _git_path(self, path):
         """ Return the path underneath a git commit directory.
@@ -210,9 +213,10 @@ class RepoFS(Operations):
                 path.split("/")[-2] in self._commit_metadata_folders() and
                 path.split("/")[-1] in self._git.all_commits()):
             return True
-        elif path.startswith("/branches") and self._is_branch(path):
+        elif path.startswith("/branches") and self._is_ref(path,
+                                                           self._branch_refs):
             return True
-        elif path.startswith("/tags") and path.count("/") == 2:
+        elif path.startswith("/tags") and self._is_ref(path, self._tag_refs):
             return True
         return False
 
@@ -222,9 +226,9 @@ class RepoFS(Operations):
         elif path.startswith("/commits-by-hash/"):
             return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
         elif path.startswith("/branches/"):
-            return self._commit_from_branch(path[10:]) + '/'
+            return self._commit_from_ref(path[10:]) + '/'
         elif path.startswith("/tags/"):
-            return self._commit_from_tag(path[6:]) + '/'
+            return self._commit_from_ref(path[6:]) + '/'
         else:
             raise FuseOSError(errno.ENOENT)
 
@@ -276,7 +280,9 @@ class RepoFS(Operations):
         elif elements in [['branches'], ['tags']]:
             return True
         elif elements[0] == 'branches':
-            return self._is_branch_prefix(path)
+            return self._is_ref_prefix(path, self._branch_refs)
+        elif elements[0] == 'tags':
+            return self._is_ref_prefix(path, self._tag_refs)
         return False
 
     def _get_file_size(self, path):
@@ -311,9 +317,9 @@ class RepoFS(Operations):
         elif path.startswith("/commits-by-hash"):
             dirents.extend(self._get_commits_by_hash(path))
         elif path.startswith('/branches'):
-            dirents.extend(self._get_branches(path))
+            dirents.extend(self._get_refs(path, self._branch_refs))
         elif path == "/tags":
-            dirents.extend(self._get_tags())
+            dirents.extend(self._get_refs(path, self._tag_refs))
 
         for r in dirents:
             yield r

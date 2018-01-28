@@ -18,8 +18,7 @@ class GitOperations(object):
         self._trees = {}
         self._trees_filled = {}
         self._sizes = {}
-        self._tags = {}
-        self._branches = {}
+        self._refs = {}
         self.years = range(self._first_year(), self._last_year() + 1)
 
     def cached_command(self, list, return_exit_code=False, silent=False):
@@ -128,28 +127,14 @@ class GitOperations(object):
                                          most_recent_branch]
                                          ))
 
-    def branches(self):
+    def refs(self, refs):
         """
-        Returns branches in the form:
-        <commit_hash> refs/heads/<branchname>
+        Returns the specified refs in the form:
+        <commit_hash> refs/{heads,remotes,tags}/<branchname>
         """
-        branchrefs = self.cached_command(['for-each-ref',
-                '--format=%(objectname) %(refname)', 'refs/heads/',
-                                          'refs/remotes/']
-                                         ).splitlines()
-        branches = [ref.strip() for ref in branchrefs]
-        return branches
-
-    def tags(self):
-        """
-        Returns tags in the form:
-        <commit_hash> refs/tags/<tagname>
-        """
-        tagrefs = self.cached_command(['for-each-ref',
-                '--format=%(objectname) %(refname)', 'refs/tags/']
-                                      ).splitlines()
-        tags = [ref.strip() for ref in tagrefs]
-        return tags
+        refs = self.cached_command(['for-each-ref',
+                '--format=%(objectname) %(refname)'] + refs).splitlines()
+        return [ref.strip() for ref in refs]
 
     def commits_by_date(self, y, m, d):
         """
@@ -197,36 +182,20 @@ class GitOperations(object):
 
         return None
 
-    def last_commit_of_branch(self, branch):
+    def commit_of_ref(self, ref):
         """
-        Returns the last commit of a branch.
+        Returns the last commit of a ref.
         """
         # Check cache
-        if branch in self._branches:
-            return self._branches[branch]
+        if ref in self._refs:
+            return self._refs[ref]
 
-        commit = self._get_commit_from_ref(branch)
+        commit = self._get_commit_from_ref(ref)
         path = ""
         if commit:
-            path = self._format_to_link(branch, commit)
+            path = self._format_to_link(ref, commit)
 
-        self._branches[branch] = path
-        return path
-
-    def commit_of_tag(self, tag):
-        """
-        Returns the commit of a tag.
-        """
-        if tag in self._tags:
-            return self._tags[tag]
-
-        commit = self._get_commit_from_ref(tag)
-        path = ""
-        # tag is pointing to a commit
-        if commit:
-            path = self._format_to_link(tag, commit)
-
-        self._tags[tag] = path
+        self._refs[ref] = path
         return path
 
     def commit_parents(self, commit):

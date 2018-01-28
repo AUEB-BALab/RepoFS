@@ -114,6 +114,8 @@ class RepoFSTestCase(TestCase):
         self.assertTrue(self.repofs._is_dir('/branches/heads/feature'))
         self.assertFalse(self.repofs._is_dir('/branches/heads/feature/a'))
         self.assertTrue(self.repofs._is_dir('/tags'))
+        self.assertTrue(self.repofs._is_dir('/tags/tdir'))
+        self.assertFalse(self.repofs._is_dir('/tags/tdir/tname'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005/7'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005/7/1'))
@@ -126,18 +128,27 @@ class RepoFSTestCase(TestCase):
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/.git-log'))
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/dir_a/file_aa'))
 
-    def test_is_branch(self):
-        self.assertTrue(self.repofs._is_branch('/branches/heads/master'))
-        self.assertTrue(self.repofs._is_branch('/branches/heads/feature/a'))
-        self.assertFalse(self.repofs._is_branch('/branches/heads/feature/'))
-        self.assertFalse(self.repofs._is_branch('/branches/heads/feature/b'))
-        self.assertFalse(self.repofs._is_branch('/branches/heads/feature'))
-        self.assertFalse(self.repofs._is_branch('/branches/heads/private/john'))
-        self.assertFalse(self.repofs._is_branch('/branches/heads/private/'))
-        self.assertTrue(self.repofs._is_branch('/branches/heads/private/john/b'))
+    def test_is_branch_ref(self):
+        br = self.repofs._branch_refs
+        self.assertTrue(self.repofs._is_ref('/branches/heads/master', br))
+        self.assertTrue(self.repofs._is_ref('/branches/heads/feature/a', br))
+        self.assertFalse(self.repofs._is_ref('/branches/heads/feature/', br))
+        self.assertFalse(self.repofs._is_ref('/branches/heads/feature/b', br))
+        self.assertFalse(self.repofs._is_ref('/branches/heads/feature', br))
+        self.assertFalse(self.repofs._is_ref('/branches/heads/private/john', br))
+        self.assertFalse(self.repofs._is_ref('/branches/heads/private/', br))
+        self.assertTrue(self.repofs._is_ref('/branches/heads/private/john/b', br))
+    def test_is_tag_ref(self):
+        tr = self.repofs._tag_refs
+        self.assertTrue(self.repofs._is_ref('/tags/t20091011ca', tr))
+        self.assertTrue(self.repofs._is_ref('/tags/tdir/tname', tr))
+        self.assertFalse(self.repofs._is_ref('/tags/tdir', tr))
+        self.assertFalse(self.repofs._is_ref('/tags/tdir/', tr))
 
     def test_is_symlink(self):
         self.assertTrue(self.repofs._is_symlink('/tags/t20091011ca'))
+        self.assertFalse(self.repofs._is_symlink('/tags/tdir'))
+        self.assertTrue(self.repofs._is_symlink('/tags/tdir/tname'))
         self.assertTrue(self.repofs._is_symlink('/branches/heads/master'))
         self.assertFalse(self.repofs._is_symlink('/branches/heads/feature'))
 
