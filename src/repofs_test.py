@@ -94,7 +94,7 @@ class RepoFSTestCase(TestCase):
         self.assertTrue('commits-by-hash' in self.repofs.readdir('/', None))
 
     def test_readdir_branches(self):
-        self.assertTrue('remotes' in self.repofs.readdir('/branches', None))
+        self.assertTrue('heads' in self.repofs.readdir('/branches', None))
         with self.assertRaises(FuseOSError):
             self.repofs.readdir('/branches/foo/bar', None).next()
         self.assertTrue('b20050701' in self.repofs.readdir('/branches/heads', None))
@@ -111,7 +111,6 @@ class RepoFSTestCase(TestCase):
         self.assertTrue(self.repofs._is_dir('/commits-by-date'))
         self.assertTrue(self.repofs._is_dir('/branches'))
         self.assertTrue(self.repofs._is_dir('/branches/heads'))
-        self.assertTrue(self.repofs._is_dir('/branches/remotes'))
         self.assertTrue(self.repofs._is_dir('/branches/heads/feature'))
         self.assertFalse(self.repofs._is_dir('/branches/heads/feature/a'))
         self.assertTrue(self.repofs._is_dir('/tags'))
