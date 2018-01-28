@@ -43,16 +43,28 @@ class RepoFS(Operations):
     def _get_root(self):
         return ['commits-by-date', 'commits-by-hash', 'branches', 'tags']
 
+    def _path_to_refs(self, path):
+        """Convert path into a list of Git refs.
+        /branch paths will start after the branch so as to include
+        heads or remotes.
+        /tags paths will start from the beginning, because this is
+        the name under which tags are stored."""
+        if path.startswith('/branches'):
+            return path.split('/')[2:]
+        elif path.startswith('/tags'):
+            return path.split('/')[1:]
+        else:
+            # Internal error
+            raise FuseOSError(errno.EIO)
+
     def _is_ref(self, path, refs):
         """Return true if the specified path (e.g. branches/master, or
         tags/V1.0) refers to one of the specified refs, (e.g.
         refs/heads or refs/tags). """
-        if path.startswith('/branches'):
-            path = path.split('/')[2:]
-        else:
-            path = path.split('/')[1:]
+        path = self._path_to_refs(path)
         for ref in self._git.refs(refs):
             ref = ref.split('/')[1:]
+            # print('Check path [%s] == ref [%s]' % (path, ref))
             if path == ref:
                 return True
         return False
@@ -61,10 +73,7 @@ class RepoFS(Operations):
         """Return true if the specified path refers to a ref name prefix
         up to a path separator for the specified refs, e.g.
         refs/heads or refs/tags. """
-        if path.startswith('/branches'):
-            path = path.split('/')[2:]
-        else:
-            path = path.split('/')[1:]
+        path = self._path_to_refs(path)
         for ref in self._git.refs(refs):
             ref = ref.split('/')[1:]
             if path == ref[:len(path)] and len(path) < len(ref):
@@ -74,7 +83,8 @@ class RepoFS(Operations):
     def _get_refs(self, path, refs):
         """Return the ref elements that match the specified path and
         refs, e.g. refs/heads or refs/tags. """
-        path = path.split('/')[2:]
+        # print("path is %s" % path)
+        path = self._path_to_refs(path)
         result = set()
         found = False
         # Find common prefix
@@ -318,7 +328,7 @@ class RepoFS(Operations):
             dirents.extend(self._get_commits_by_hash(path))
         elif path.startswith('/branches'):
             dirents.extend(self._get_refs(path, self._branch_refs))
-        elif path == "/tags":
+        elif path.startswith('/tags'):
             dirents.extend(self._get_refs(path, self._tag_refs))
 
         for r in dirents:

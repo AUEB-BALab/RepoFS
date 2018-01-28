@@ -74,6 +74,12 @@ class RepoFSTestCase(TestCase):
         self.assertGreater(len(self.repofs._get_commits_by_hash('/commits-by-hash/')), 3)
         self.assertEqual(len(self.repofs._get_commits_by_hash('/commits-by-hash/')[0]), 40)
 
+    def test_path_to_refs(self):
+        self.assertEqual(self.repofs._path_to_refs('/branches/heads/foo'),
+                         ['heads', 'foo'])
+        self.assertEqual(self.repofs._path_to_refs('/tags/tagname'),
+                         ['tags', 'tagname'])
+
     def test_git_path(self):
         self.assertEqual(self.repofs._git_path(
             '/commits-by-date/2017/12/28/ed34f8.../src/foo'), 'src/foo')
@@ -96,7 +102,7 @@ class RepoFSTestCase(TestCase):
     def test_readdir_branches(self):
         self.assertTrue('heads' in self.repofs.readdir('/branches', None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir('/branches/foo/bar', None).next()
+            self.repofs.readdir('/branches/branchpartfoo/bar', None).next()
         self.assertTrue('b20050701' in self.repofs.readdir('/branches/heads', None))
         self.assertEqual(sum(1 for _ in self.repofs.readdir('/branches/heads', None)), 6)
         self.assertEqual(sum(1 for _ in self.repofs.readdir('/branches/heads/private', None)), 3)
@@ -105,6 +111,17 @@ class RepoFSTestCase(TestCase):
         self.assertTrue('c' in self.repofs.readdir('/branches/heads/private/john', None))
         with self.assertRaises(FuseOSError):
             self.repofs.readdir('/branches/heads/feature/xyzzy', None).next()
+
+    def test_readdir_tags(self):
+        self.assertTrue('t20091011ca' in self.repofs.readdir('/tags', None))
+        self.assertTrue('tdir' in self.repofs.readdir('/tags', None))
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir('/tags/tagpartfoo/bar', None).next()
+        self.assertEqual(sum(1 for _ in self.repofs.readdir('/tags', None)), 8)
+        self.assertEqual(sum(1 for _ in self.repofs.readdir('/tags/tdir', None)), 3)
+        self.assertTrue('tname' in self.repofs.readdir('/tags/tdir', None))
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir('/tags/tdir/xyzzy', None).next()
 
     def test_is_dir(self):
         self.assertTrue(self.repofs._is_dir('/'))
