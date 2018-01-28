@@ -227,7 +227,8 @@ class GitOperations(object):
         """
         Returns commit parents
         """
-        return []
+        parents = self._get_entry(self._pygit[commit]).parents
+        return [str(p.id) for p in parents]
 
     def commit_descendants(self, commit):
         """

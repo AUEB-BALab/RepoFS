@@ -76,7 +76,7 @@ class RepoFS(Operations):
         # Last two elements from /commits-by-hash/hash or
         # /commits-by-date/yyyy/mm/dd/hash
         if elements[1] in self._commit_metadata_folders():
-            return self._get_metadata_folder(elements[1])
+            return self._get_metadata_folder(elements[0], elements[1])
         else:
             dirents = self._git.directory_contents(elements[0],
                                                    elements[1])
@@ -134,10 +134,7 @@ class RepoFS(Operations):
     def _commit_metadata_folders(self):
         return ['.git-parents', '.git-descendants', '.git-names']
 
-    def _get_metadata_folder(self, path):
-        commit = self._commit_from_path(path)
-        metaname = self._git_path(path)
-
+    def _get_metadata_folder(self, commit, metaname):
         if metaname == '.git-parents':
             return self._git.commit_parents(commit)
         elif metaname == '.git-descendants':
