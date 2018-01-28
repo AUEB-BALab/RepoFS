@@ -15,8 +15,8 @@ class RepoFSTestCase(TestCase):
         self.repofs = RepoFS('test_repo', 'mnt', True)
         self.first_commit = '/commits-by-date/2005/6/7/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2005/6/7')[0]
-        self.second_commit = '/commits-by-date/2006/10/11/' + self.repofs._get_commits_by_date(
-            '/commits-by-date/2009/10/11')[0]
+        self.second_commit = '/commits-by-date/2005/6/10/' + self.repofs._get_commits_by_date(
+            '/commits-by-date/2005/6/10')[0]
         self.recent_commit = '/commits-by-date/2009/10/11/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2009/10/11')[0]
 
@@ -51,7 +51,9 @@ class RepoFSTestCase(TestCase):
         self.repofs._verify_date_path([2005, 1, 31])
 
     def test_verify_commits_parents(self):
-        yield;
+        first = self.first_commit.split("/")[-1]
+        second = self.second_commit.split("/")[-1]
+        self.assertEqual(self.repofs._get_metadata_folder(second, ".git-parents"), [first])
 
     def test_verify_commits_by_date(self):
         self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date')), 5)
@@ -145,6 +147,14 @@ class RepoFSTestCase(TestCase):
                          '..' + self.recent_commit + '/')
         self.assertEqual(self.repofs._target_from_symlink('/branches/heads/master'),
                          '../..' + self.recent_commit + '/')
+        self.assertEqual(self.repofs._target_from_symlink('/branches/master'),
+                         '..' + self.recent_commit + '/')
+        self.assertEqual(self.repofs._target_from_symlink(
+                self.second_commit + '/.git-parents/' + self.first_commit.split("/")[-1]),
+                self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
+        self.assertEqual(self.repofs._target_from_symlink(
+                '/commits-by-hash/' + self.second_commit.split("/")[-1] + '/.git-parents/' + self.first_commit.split("/")[-1]),
+                self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
 
 if __name__ == "__main__":
     main()

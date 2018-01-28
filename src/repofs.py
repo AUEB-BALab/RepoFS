@@ -109,7 +109,7 @@ class RepoFS(Operations):
         # Last two elements from /commits-by-hash/hash or
         # /commits-by-date/yyyy/mm/dd/hash
         if elements[1] in self._commit_metadata_folders():
-            return self._get_metadata_folder(path)
+            return self._get_metadata_folder(elements[0], elements[1])
         else:
             dirents = self._git.directory_contents(elements[0],
                                                    elements[1])
@@ -167,10 +167,7 @@ class RepoFS(Operations):
     def _commit_metadata_folders(self):
         return ['.git-parents', '.git-descendants', '.git-names']
 
-    def _get_metadata_folder(self, path):
-        commit = self._commit_from_path(path)
-        metaname = self._git_path(path)
-
+    def _get_metadata_folder(self, commit, metaname):
         if metaname == '.git-parents':
             return self._git.commit_parents(commit)
         elif metaname == '.git-descendants':
@@ -206,12 +203,12 @@ class RepoFS(Operations):
     def _is_symlink(self, path):
         if (path.startswith("/commits-by-date/")  and
                 path.split("/")[-2] in self._commit_metadata_folders() and
-                path.split("/")[-1] in self._get_commits_by_date()):
+                path.split("/")[-1] in self._git.all_commits()):
             # XXX Must also check number of slashes
             return True
         elif (path.startswith("/commits-by-hash/") and
                 path.split("/")[-2] in self._commit_metadata_folders() and
-                path.split("/")[-1] in self._get_commits_by_hash()):
+                path.split("/")[-1] in self._git.all_commits()):
             return True
         elif path.startswith("/branches") and self._is_branch(path):
             return True
@@ -221,7 +218,7 @@ class RepoFS(Operations):
 
     def _target_from_symlink(self, path):
         if path.startswith("/commits-by-date/"):
-            return os.path.join(self.mount, "commits-by-date", path.split("/")[-1] + "/")
+            return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
         elif path.startswith("/commits-by-hash/"):
             return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
         elif path.startswith("/branches/"):
@@ -271,6 +268,8 @@ class RepoFS(Operations):
                 # Includes commit hash
                 return elements[1] in self._git.all_commits()
             elif elements[2] in self._commit_metadata_folders():
+                if len(elements) == 4:
+                    return False
                 return True
             else:
                 return self._git.is_dir(elements[1], elements[2])
