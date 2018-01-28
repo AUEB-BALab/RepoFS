@@ -135,7 +135,7 @@ class GitOperations(object):
         """
         branchrefs = self.cached_command(['for-each-ref',
                 '--format=%(objectname) %(refname)', 'refs/heads/',
-                                          'refs/remotes']
+                                          'refs/remotes/']
                                          ).splitlines()
         branches = [ref.strip() for ref in branchrefs]
         return branches
@@ -179,9 +179,13 @@ class GitOperations(object):
         commits = [commit.strip() for commit in commits]
         return commits
 
-    def _format_to_link(self, commit):
+    def _format_to_link(self, path, commit):
+        """ Return the specified commit as a symbolic link for the
+        specified path"""
         time = datetime.datetime.fromtimestamp(commit.commit_time).strftime("%Y/%m/%d")
-        return "../commits-by-date/%s/%s" % (time, commit.id)
+        # Make value relative to specified path
+        updirs = (path.count('/') + 1) * '../'
+        return updirs + "commits-by-date/%s/%s" % (time, commit.id)
 
     def _get_commit_from_ref(self, ref):
         commit = self._pygit.revparse_single(ref)
@@ -197,13 +201,14 @@ class GitOperations(object):
         """
         Returns the last commit of a branch.
         """
+        # Check cache
         if branch in self._branches:
             return self._branches[branch]
 
         commit = self._get_commit_from_ref(branch)
         path = ""
         if commit:
-            path = self._format_to_link(commit)
+            path = self._format_to_link(branch, commit)
 
         self._branches[branch] = path
         return path
@@ -219,7 +224,7 @@ class GitOperations(object):
         path = ""
         # tag is pointing to a commit
         if commit:
-            path = self._format_to_link(commit)
+            path = self._format_to_link(tag, commit)
 
         self._tags[tag] = path
         return path

@@ -84,10 +84,34 @@ class RepoFSTestCase(TestCase):
         entries = self.repofs._get_commits_by_date(self.recent_commit)
         self.assertTrue(entries, 'file_a' in entries)
 
+    def test_readdir(self):
+        self.assertEqual(sum(1 for _ in self.repofs.readdir('/', None)), 6)
+        self.assertTrue('tags' in self.repofs.readdir('/', None))
+        self.assertTrue('branches' in self.repofs.readdir('/', None))
+        self.assertTrue('commits-by-date' in self.repofs.readdir('/', None))
+        self.assertTrue('commits-by-hash' in self.repofs.readdir('/', None))
+
+    def test_readdir_branches(self):
+        self.assertTrue('remotes' in self.repofs.readdir('/branches', None))
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir('/branches/foo/bar', None).next()
+        self.assertTrue('b20050701' in self.repofs.readdir('/branches/heads', None))
+        self.assertEqual(sum(1 for _ in self.repofs.readdir('/branches/heads', None)), 6)
+        self.assertEqual(sum(1 for _ in self.repofs.readdir('/branches/heads/private', None)), 3)
+        self.assertTrue('a' in self.repofs.readdir('/branches/heads/feature', None))
+        self.assertTrue('b' in self.repofs.readdir('/branches/heads/private/john', None))
+        self.assertTrue('c' in self.repofs.readdir('/branches/heads/private/john', None))
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir('/branches/heads/feature/xyzzy', None).next()
+
     def test_is_dir(self):
         self.assertTrue(self.repofs._is_dir('/'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date'))
         self.assertTrue(self.repofs._is_dir('/branches'))
+        self.assertTrue(self.repofs._is_dir('/branches/heads'))
+        self.assertTrue(self.repofs._is_dir('/branches/remotes'))
+        self.assertTrue(self.repofs._is_dir('/branches/heads/feature'))
+        self.assertFalse(self.repofs._is_dir('/branches/heads/feature/a'))
         self.assertTrue(self.repofs._is_dir('/tags'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005'))
         self.assertTrue(self.repofs._is_dir('/commits-by-date/2005/7'))
@@ -101,11 +125,26 @@ class RepoFSTestCase(TestCase):
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/.git-log'))
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/dir_a/file_aa'))
 
+    def test_is_branch(self):
+        self.assertTrue(self.repofs._is_branch('/branches/heads/master'))
+        self.assertTrue(self.repofs._is_branch('/branches/heads/feature/a'))
+        self.assertFalse(self.repofs._is_branch('/branches/heads/feature/'))
+        self.assertFalse(self.repofs._is_branch('/branches/heads/feature/b'))
+        self.assertFalse(self.repofs._is_branch('/branches/heads/feature'))
+        self.assertFalse(self.repofs._is_branch('/branches/heads/private/john'))
+        self.assertFalse(self.repofs._is_branch('/branches/heads/private/'))
+        self.assertTrue(self.repofs._is_branch('/branches/heads/private/john/b'))
+
+    def test_is_symlink(self):
+        self.assertTrue(self.repofs._is_symlink('/tags/t20091011ca'))
+        self.assertTrue(self.repofs._is_symlink('/branches/heads/master'))
+        self.assertFalse(self.repofs._is_symlink('/branches/heads/feature'))
+
     def test_target_from_symlink(self):
         self.assertEqual(self.repofs._target_from_symlink('/tags/t20091011ca'),
                          '..' + self.recent_commit + '/')
-        self.assertEqual(self.repofs._target_from_symlink('/branches/master'),
-                         '..' + self.recent_commit + '/')
+        self.assertEqual(self.repofs._target_from_symlink('/branches/heads/master'),
+                         '../..' + self.recent_commit + '/')
 
 if __name__ == "__main__":
     main()

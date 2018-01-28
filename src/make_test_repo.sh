@@ -18,6 +18,7 @@ touch file_a file_b file_c file_d
 git add file_a file_b
 date_commit 2005-06-07 -a -m 'Add files a, b'
 git tag t20050607
+git tag tdir/tname
 
 echo "Contents" >> file_a
 
@@ -36,6 +37,12 @@ date_commit 2005-07-01 -m 'Add file d,r'
 echo hi >file_d
 date_commit 2005-07-01 -am 'Change file d'
 git tag t20050701
+
+git checkout -b b20050701
+git checkout -b feature/a
+git checkout -b private/john/b
+git checkout -b private/john/c
+git checkout master
 
 # Files in directory
 mkdir -p dir_a/dir_b/dir_c

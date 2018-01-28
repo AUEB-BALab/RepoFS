@@ -41,11 +41,44 @@ class RepoFS(Operations):
     def _get_root(self):
         return ['commits-by-date', 'commits-by-hash', 'branches', 'tags']
 
-    def _get_branches(self):
-        branches = self._git.branches()
-        branches = [branch.split(" ")[1].split("/")[-1] for branch in branches]
+    def _is_branch(self, path):
+        """Return true if the specified path refers to a branch"""
+        path = path.split('/')[2:]
+        for branch in self._git.branches():
+            branch = branch.split('/')[1:]
+            if path == branch:
+                return True
+        return False
 
-        return branches
+    def _is_branch_prefix(self, path):
+        """Return true if the specified path refers to a branch name prefix
+        up to a path separator"""
+        path = path.split('/')[2:]
+        for branch in self._git.branches():
+            branch = branch.split('/')[1:]
+            if path == branch[:len(path)] and len(path) < len(branch):
+                return True
+        return False
+
+    def _get_branches(self, path):
+        """Return the branch elements that match the specified path"""
+        path = path.split('/')[2:]
+        result = set()
+        found = False
+        # Find common prefix
+        for branch in self._git.branches():
+            branch = branch.split('/')[1:]
+            # print('Look for path [%s] in branch [%s]' % (path, branch))
+            if path == branch[:len(path)]:
+                # Common prefix found
+                found = True
+                if len(branch) > len(path):
+                    # print("append %s" % (branch[len(path)]))
+                    result.add(branch[len(path)])
+
+        if not found:
+            raise FuseOSError(errno.ENOTDIR)
+        return result
 
     def _get_tags(self):
         tags = self._git.tags()
@@ -147,7 +180,6 @@ class RepoFS(Operations):
         else:
             return []
 
-
     def _commit_from_branch(self, branch):
         return self._git.last_commit_of_branch(branch)
 
@@ -181,7 +213,7 @@ class RepoFS(Operations):
                 path.split("/")[-2] in self._commit_metadata_folders() and
                 path.split("/")[-1] in self._get_commits_by_hash()):
             return True
-        elif path.startswith("/branches") and path.count("/") == 2:
+        elif path.startswith("/branches") and self._is_branch(path):
             return True
         elif path.startswith("/tags") and path.count("/") == 2:
             return True
@@ -193,9 +225,9 @@ class RepoFS(Operations):
         elif path.startswith("/commits-by-hash/"):
             return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
         elif path.startswith("/branches/"):
-            return self._commit_from_branch(path.split("/")[-1]) + "/"
+            return self._commit_from_branch(path[10:]) + '/'
         elif path.startswith("/tags/"):
-            return self._commit_from_tag(path.split("/")[-1]) + "/"
+            return self._commit_from_tag(path[6:]) + '/'
         else:
             raise FuseOSError(errno.ENOENT)
 
@@ -242,10 +274,10 @@ class RepoFS(Operations):
                 return True
             else:
                 return self._git.is_dir(elements[1], elements[2])
-        elif elements == ['branches']:
+        elif elements in [['branches'], ['tags']]:
             return True
-        elif elements == ['tags']:
-            return True
+        elif elements[0] == 'branches':
+            return self._is_branch_prefix(path)
         return False
 
     def _get_file_size(self, path):
@@ -279,8 +311,8 @@ class RepoFS(Operations):
             dirents.extend(self._get_commits_by_date(path))
         elif path.startswith("/commits-by-hash"):
             dirents.extend(self._get_commits_by_hash(path))
-        elif path == "/branches":
-            dirents.extend(self._get_branches())
+        elif path.startswith('/branches'):
+            dirents.extend(self._get_branches(path))
         elif path == "/tags":
             dirents.extend(self._get_tags())
 
