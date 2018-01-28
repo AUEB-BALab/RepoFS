@@ -134,7 +134,8 @@ class GitOperations(object):
         <commit_hash> refs/heads/<branchname>
         """
         branchrefs = self.cached_command(['for-each-ref',
-                '--format=%(objectname) %(refname)', 'refs/heads/']
+                '--format=%(objectname) %(refname)', 'refs/heads/',
+                                          'refs/remotes']
                                          ).splitlines()
         branches = [ref.strip() for ref in branchrefs]
         return branches
