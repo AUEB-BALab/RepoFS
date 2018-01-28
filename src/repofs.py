@@ -76,7 +76,7 @@ class RepoFS(Operations):
         # Last two elements from /commits-by-hash/hash or
         # /commits-by-date/yyyy/mm/dd/hash
         if elements[1] in self._commit_metadata_folders():
-            return self._get_metadata_folder(path)
+            return self._get_metadata_folder(elements[1])
         else:
             dirents = self._git.directory_contents(elements[0],
                                                    elements[1])
