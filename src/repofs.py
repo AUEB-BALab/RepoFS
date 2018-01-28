@@ -171,12 +171,12 @@ class RepoFS(Operations):
     def _is_symlink(self, path):
         if (path.startswith("/commits-by-date/")  and
                 path.split("/")[-2] in self._commit_metadata_folders() and
-                path.split("/")[-1] in self._get_commits_by_date()):
+                path.split("/")[-1] in self._git.all_commits()):
             # XXX Must also check number of slashes
             return True
         elif (path.startswith("/commits-by-hash/") and
                 path.split("/")[-2] in self._commit_metadata_folders() and
-                path.split("/")[-1] in self._get_commits_by_hash()):
+                path.split("/")[-1] in self._git.all_commits()):
             return True
         elif path.startswith("/branches") and path.count("/") == 2:
             return True
@@ -186,7 +186,7 @@ class RepoFS(Operations):
 
     def _target_from_symlink(self, path):
         if path.startswith("/commits-by-date/"):
-            return os.path.join(self.mount, "commits-by-date", path.split("/")[-1] + "/")
+            return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
         elif path.startswith("/commits-by-hash/"):
             return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
         elif path.startswith("/branches/"):
@@ -236,6 +236,8 @@ class RepoFS(Operations):
                 # Includes commit hash
                 return elements[1] in self._git.all_commits()
             elif elements[2] in self._commit_metadata_folders():
+                if len(elements) == 4:
+                    return False
                 return True
             else:
                 return self._git.is_dir(elements[1], elements[2])

@@ -108,6 +108,12 @@ class RepoFSTestCase(TestCase):
                          '..' + self.recent_commit + '/')
         self.assertEqual(self.repofs._target_from_symlink('/branches/master'),
                          '..' + self.recent_commit + '/')
+        self.assertEqual(self.repofs._target_from_symlink(
+                self.second_commit + '/.git-parents/' + self.first_commit.split("/")[-1]),
+                self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
+        self.assertEqual(self.repofs._target_from_symlink(
+                '/commits-by-hash/' + self.second_commit.split("/")[-1] + '/.git-parents/' + self.first_commit.split("/")[-1]),
+                self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
 
 if __name__ == "__main__":
     main()
