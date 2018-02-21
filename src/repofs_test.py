@@ -164,6 +164,12 @@ class RepoFSTestCase(TestCase):
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/.git-log'))
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/dir_a/file_aa'))
         self.assertFalse(self.repofs._is_dir(self.recent_commit_by_hash + "/dir_a/lalala"))
+        with self.assertRaises(FuseOSError):
+            self.repofs._is_dir('/commits-by-date/lala')
+        with self.assertRaises(FuseOSError):
+            self.repofs._is_dir('/commits-by-date/2005/lala')
+        with self.assertRaises(FuseOSError):
+            self.repofs._is_dir('/commits-by-date/2005/7/lala')
 
     def test_is_branch_ref(self):
         br = self.repofs._branch_refs

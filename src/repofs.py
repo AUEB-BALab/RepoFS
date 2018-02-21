@@ -156,6 +156,13 @@ class RepoFS(Operations):
                 dirents += self._commit_metadata_names()
             return dirents
 
+    def _dates_to_int(self, dates):
+        # if not integers raise OSError
+        try:
+            return [int(x) for x in dates]
+        except ValueError:
+            raise FuseOSError(errno.ENOENT)
+
     def _get_commits_by_date(self, path):
         """ Return directory entries for path elements under the
         /commits-by-date entry. """
@@ -165,11 +172,7 @@ class RepoFS(Operations):
         if len(elements) > 0 and elements[-1] == '':
             del elements[-1]
 
-        # if not integers raise OSError
-        try:
-            elements[:3] = [int(x) for x in elements[:3]]
-        except ValueError:
-            raise FuseOSError(errno.ENOENT)
+        elements[:3] = self._dates_to_int(elements[:3])
 
         self._verify_date_path(elements[:3])
         # Precondition: path represents a valid date
@@ -292,7 +295,7 @@ class RepoFS(Operations):
 
         elements = path.split("/", 6)[1:]
         if elements[0] == 'commits-by-date':
-            elements[1:4] = [int(x) for x in elements[1:4]]
+            elements[1:4] = self._dates_to_int(elements[1:4])
             self._verify_date_path(elements[1:4])
             if len(elements) < 5:
                 return True
