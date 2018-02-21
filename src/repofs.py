@@ -25,7 +25,7 @@ from time import time
 from stat import S_IFDIR, S_IFREG, S_IFLNK
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
-from gitoper import GitOperations
+from gitoper import GitOperations, GitOperError
 
 
 class RepoFS(Operations):
@@ -137,13 +137,21 @@ class RepoFS(Operations):
         return the corresponding contents of a commits directory.  """
         if len(elements) < 2:
             elements.append('')
+
+        # root isn't a commit hash
+        if elements[0] not in self._git.all_commits():
+            raise FuseOSError(errno.ENOENT)
+
         # Last two elements from /commits-by-hash/hash or
         # /commits-by-date/yyyy/mm/dd/hash
         if elements[1] in self._commit_metadata_folders():
             return self._get_metadata_folder(elements[0], elements[1])
         else:
-            dirents = self._git.directory_contents(elements[0],
-                                                   elements[1])
+            try:
+                dirents = self._git.directory_contents(elements[0],
+                                                       elements[1])
+            except GitOperError:
+                raise FuseOSError(errno.ENOTDIR)
             if elements[1] == '': # on the root of a commit folder
                 dirents += self._commit_metadata_names()
             return dirents
@@ -156,7 +164,13 @@ class RepoFS(Operations):
         # Remove trailing empty slash
         if len(elements) > 0 and elements[-1] == '':
             del elements[-1]
-        elements[:3] = [int(x) for x in elements[:3]]
+
+        # if not integers raise OSError
+        try:
+            elements[:3] = [int(x) for x in elements[:3]]
+        except ValueError:
+            raise FuseOSError(errno.ENOENT)
+
         self._verify_date_path(elements[:3])
         # Precondition: path represents a valid date
         if len(elements) == 0:
@@ -301,7 +315,7 @@ class RepoFS(Operations):
                     return False
                 return True
             else:
-                return self._git.is_dir(elements[1], elements[2])
+                return self._git.is_dir(elements[1], "/".join(elements[2:]))
         elif elements in [['branches'], ['tags']]:
             return True
         elif elements[0] == 'branches':
@@ -311,10 +325,16 @@ class RepoFS(Operations):
         return False
 
     def _get_file_size(self, path):
-        return self._git.file_size(self._commit_from_path(path), self._git_path(path))
+        try:
+            return self._git.file_size(self._commit_from_path(path), self._git_path(path))
+        except GitOperError:
+            raise FuseOSError(errno.ENOENT)
 
     def _get_file_contents(self, path):
-        return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
+        try:
+            return self._git.file_contents(self._commit_from_path(path), self._git_path(path))
+        except GitOperError:
+            raise FuseOSError(errno.ENOENT)
 
     def getattr(self, path, fh=None):
         uid, gid, pid = fuse_get_context()
@@ -345,6 +365,8 @@ class RepoFS(Operations):
             dirents.extend(self._get_refs(path, self._branch_refs))
         elif path.startswith('/tags'):
             dirents.extend(self._get_refs(path, self._tag_refs))
+        else:
+            raise FuseOSError(errno.ENOENT)
 
         for r in dirents:
             yield r

@@ -16,7 +16,7 @@
 #
 
 from unittest import TestCase, main
-from gitoper import GitOperations
+from gitoper import GitOperations, GitOperError
 
 
 class GitOperationsTestCase(TestCase):
@@ -51,7 +51,6 @@ class GitOperationsTestCase(TestCase):
     def test_file_size(self):
         self.assertTrue(self.go.file_size(self.master_hash, "file_a") > 0)
         self.assertEqual(self.go.file_size(self.master_hash, "file_b"), 0)
-        self.assertEqual(self.go.file_size(self.master_hash, "file_z"), 0)
 
     def test_file_contents(self):
         self.assertEqual(self.go.file_contents(self.master_hash, "file_a"), "Contents\n")
@@ -68,7 +67,16 @@ class GitOperationsTestCase(TestCase):
     def test_directory_contents(self):
         self.assertEqual(self.go.directory_contents(self.master_hash, "dir_a"), ["dir_b", "file_aa"])
         self.assertEqual(self.go.directory_contents(self.master_hash, "dir_a/dir_b"), ["dir_c"])
-        self.assertEqual(self.go.directory_contents(self.master_hash, "dir_z"), [])
+
+    def test_non_existent(self):
+        with self.assertRaises(GitOperError):
+            self.go.file_size(self.master_hash, "file_z")
+        with self.assertRaises(GitOperError):
+            self.go.file_size(self.master_hash, "dir_z/file_z")
+        with self.assertRaises(GitOperError):
+            self.assertEqual(self.go.directory_contents(self.master_hash, "dir_z"), [])
+        with self.assertRaises(GitOperError):
+            self.assertEqual(self.go.directory_contents(self.master_hash, "dir_z/dir_zz"), [])
 
     def test_fill_trees(self):
         dirs = ["dir_a", "dir_a/dir_b"]

@@ -36,6 +36,8 @@ class RepoFSTestCase(TestCase):
             '/commits-by-date/2005/6/10')[0]
         self.recent_commit = '/commits-by-date/2009/10/11/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2009/10/11')[0]
+        self.recent_commit_by_hash = '/commits-by-hash/' + self.repofs._get_commits_by_date(
+            '/commits-by-date/2009/10/11')[0]
 
     def test_days_per_month(self):
         self.assertEqual(self.repofs._days_per_month(2017),
@@ -161,6 +163,7 @@ class RepoFSTestCase(TestCase):
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/file_a'))
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/.git-log'))
         self.assertFalse(self.repofs._is_dir(self.recent_commit + '/dir_a/file_aa'))
+        self.assertFalse(self.repofs._is_dir(self.recent_commit_by_hash + "/dir_a/lalala"))
 
     def test_is_branch_ref(self):
         br = self.repofs._branch_refs
@@ -199,6 +202,30 @@ class RepoFSTestCase(TestCase):
         self.assertEqual(self.repofs._target_from_symlink(
                 '/commits-by-hash/' + self.second_commit.split("/")[-1] + '/.git-parents/' + self.first_commit.split("/")[-1]),
                 self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
+
+    def test_access_non_existent_dir(self):
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/foobar", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/tags/barfoo", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/branches/barfoo", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/commits-by-date/helloworld", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/commits-by-date/2005/helloworld", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/commits-by-date/2005/6/helloworld", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/commits-by-date/2005/6/7/helloworld", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir(self.first_commit + "/dir_a/helloworld", None).next()
+        with self.assertRaises(FuseOSError):
+            self.repofs.readdir("/commits-by-hash/helloworld", None).next()
+
+    def test_access_non_existent_file(self):
+        with self.assertRaises(FuseOSError):
+            self.repofs.read(self.first_commit + "/dir_a/helloworld", 100, 10, None)
 
 if __name__ == "__main__":
     main()

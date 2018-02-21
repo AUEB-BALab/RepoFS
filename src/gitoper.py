@@ -72,7 +72,17 @@ class GitOperations(object):
                 self._commands[command] = out
             return out
 
-    def _get_entry(self, obj):
+    def _get_entry(self, commit, path=None):
+        try:
+            if path:
+                obj = self._pygit[commit].tree[path]
+            elif path == '':
+                obj = self._pygit[commit].tree
+            else:
+                obj = self._pygit[commit]
+        except KeyError as e:
+            raise GitOperError("pygit entry does not exist\n%s" % (str(e)))
+
         return self._pygit[obj.id]
 
     def _fill_trees(self, commit, contents):
@@ -88,11 +98,11 @@ class GitOperations(object):
 
     def _get_tree(self, commit, path):
         if not path:
-            tree = self._get_entry(self._pygit[commit].tree)
+            tree = self._get_entry(commit, '')
         else:
             path += "/"
             try:
-                tree = self._get_entry(self._pygit[commit].tree[path])
+                tree = self._get_entry(commit, path)
             except KeyError:
                 return []
 
@@ -219,7 +229,7 @@ class GitOperations(object):
         """
         Returns commit parents
         """
-        parents = self._get_entry(self._pygit[commit]).parents
+        parents = self._get_entry(commit).parents
         return [str(p.id) for p in parents]
 
     def commit_descendants(self, commit):
@@ -262,7 +272,7 @@ class GitOperations(object):
 
     def file_contents(self, commit, path):
         try:
-            return self._get_entry(self._pygit[commit].tree[path]).data
+            return self._get_entry(commit, path).data
         except KeyError:
             return ""
 
@@ -274,9 +284,12 @@ class GitOperations(object):
             return self._sizes[commit][path]
 
         try:
-            size = self._get_entry(self._pygit[commit].tree[path]).size
+            size = self._get_entry(commit, path).size
         except KeyError:
             size = 0
 
         self._sizes[commit][path] = size
         return size
+
+class GitOperError(Exception):
+    pass
