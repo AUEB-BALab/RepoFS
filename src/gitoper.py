@@ -244,6 +244,9 @@ class GitOperations(object):
         """
         return []
 
+    def get_commit_time(self, commit):
+        return self._get_entry(commit).commit_time
+
     def directory_contents(self, commit, path):
         """
         Returns the contents of the directory

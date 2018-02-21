@@ -353,7 +353,17 @@ class RepoFS(Operations):
             st['st_mode'] = (S_IFREG | 0o440)
             st['st_size'] = self._get_file_size(path)
 
-        st['st_ctime'] = st['st_mtime'] = st['st_atime'] = time()
+        t = time()
+        st['st_atime'] = st['st_ctime'] = st['st_mtime'] = t
+        try:
+            commit = self._commit_from_path(path)
+            if commit:
+                st['st_ctime'] = st['st_mtime'] = self._git.get_commit_time(commit)
+            else:
+                st['st_ctime'] = st['st_mtime'] = t
+        except FuseOSError: # commit doesn't exist on path
+            st['st_ctime'] = st['st_mtime'] = t
+
         return st
 
     def readdir(self, path, fh):

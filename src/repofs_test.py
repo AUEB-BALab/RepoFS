@@ -233,5 +233,18 @@ class RepoFSTestCase(TestCase):
         with self.assertRaises(FuseOSError):
             self.repofs.read(self.first_commit + "/dir_a/helloworld", 100, 10, None)
 
+    def test_st_time(self):
+        ctime = self.repofs._git.get_commit_time(self.recent_commit_by_hash.split("/")[-1])
+
+        st = self.repofs.getattr(self.recent_commit + "/dir_a")
+        self.assertEqual(st['st_mtime'], ctime)
+        self.assertEqual(st['st_ctime'], ctime)
+        self.assertNotEqual(st['st_atime'], ctime)
+
+        st = self.repofs.getattr(self.recent_commit + "/file_a")
+        self.assertEqual(st['st_mtime'], ctime)
+        self.assertEqual(st['st_ctime'], ctime)
+        self.assertNotEqual(st['st_atime'], ctime)
+
 if __name__ == "__main__":
     main()

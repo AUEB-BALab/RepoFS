@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import datetime
+
 from unittest import TestCase, main
 from gitoper import GitOperations, GitOperError
 
@@ -98,6 +100,9 @@ class GitOperationsTestCase(TestCase):
 
         self.assertEqual(self.go._trees[self.master_hash], set(["dir_a/dir_b"]))
         self.assertEqual(self.go._trees_filled[self.master_hash], set(["dir_a"]))
+
+    def test_commit_time(self):
+        self.assertEqual("2009-10-11", datetime.datetime.fromtimestamp(self.go.get_commit_time(self.master_hash)).strftime("%Y-%m-%d"))
 
 if __name__ == "__main__":
     main()
