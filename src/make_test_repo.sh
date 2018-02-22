@@ -44,6 +44,12 @@ git checkout -b private/john/b
 git checkout -b private/john/c
 git checkout master
 
+ln -s file_a link_a
+git add link_a
+date_commit 2007-01-15 -m 'Add symlink link_a'
+git tag t20070115la
+
+
 # Files in directory
 mkdir -p dir_a/dir_b/dir_c
 touch dir_a/file_aa dir_a/dir_b/dir_c/file_ca

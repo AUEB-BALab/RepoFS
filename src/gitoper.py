@@ -21,7 +21,7 @@ import re
 import sys
 
 from subprocess import check_output, CalledProcessError, call
-from pygit2 import Repository, Commit, GIT_OBJ_TREE
+from pygit2 import Repository, Commit, GIT_OBJ_TREE, GIT_FILEMODE_LINK
 
 
 class GitOperations(object):
@@ -72,7 +72,7 @@ class GitOperations(object):
                 self._commands[command] = out
             return out
 
-    def _get_entry(self, commit, path=None):
+    def _get_entry(self, commit, path=None, return_tree=False):
         try:
             if path:
                 obj = self._pygit[commit].tree[path]
@@ -82,6 +82,9 @@ class GitOperations(object):
                 obj = self._pygit[commit]
         except KeyError as e:
             raise GitOperError("pygit entry does not exist\n%s" % (str(e)))
+
+        if return_tree:
+            return obj
 
         return self._pygit[obj.id]
 
@@ -255,6 +258,13 @@ class GitOperations(object):
 
         tree = self._get_tree(commit, path)
         return [c[0] for c in tree]
+
+    def is_symlink(self, commit, path):
+        entry = self._get_entry(commit, path, return_tree=True)
+        if entry.filemode == GIT_FILEMODE_LINK:
+            return True
+
+        return False
 
     def is_dir(self, commit, path):
         if commit in self._trees and path in self._trees[commit]:

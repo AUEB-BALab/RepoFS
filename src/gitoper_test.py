@@ -93,7 +93,7 @@ class GitOperationsTestCase(TestCase):
 
     def test_get_tree(self):
         self.assertEqual(self.go._get_tree(self.master_hash, "dir_a"), [("dir_b", "tree"), ("file_aa", "blob")])
-        self.assertEqual(self.go._get_tree(self.master_hash, ""), [("dir_a", "tree")] + [("file_" + c, "blob") for c in "abcdr"])
+        self.assertEqual(self.go._get_tree(self.master_hash, ""), [("dir_a", "tree")] + [("file_" + c, "blob") for c in "abcdr"] + [("link_a", "blob")])
 
     def test_cache_trees(self):
         self.go._cache_tree(self.master_hash, "dir_a")
@@ -103,6 +103,12 @@ class GitOperationsTestCase(TestCase):
 
     def test_commit_time(self):
         self.assertEqual("2009-10-11", datetime.datetime.fromtimestamp(self.go.get_commit_time(self.master_hash)).strftime("%Y-%m-%d"))
+
+    def test_is_symlink(self):
+        commit = self.go.commit_of_ref("refs/tags/t20070115la").split("/")[-1]
+        self.assertTrue(self.go.is_symlink(commit, "link_a"))
+        self.assertFalse(self.go.is_symlink(commit, "file_a"))
+
 
 if __name__ == "__main__":
     main()
