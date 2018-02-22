@@ -16,7 +16,7 @@
 #
 
 from unittest import TestCase, main
-from os import mkdir, rmdir, errno
+from os import mkdir, rmdir, errno, path
 
 from repofs import RepoFS
 from fuse import FuseOSError
@@ -24,12 +24,13 @@ from fuse import FuseOSError
 
 class RepoFSTestCase(TestCase):
     def setUp(self):
+        self.mount = 'mnt'
         try:
-            mkdir('mnt')
+            mkdir(self.mount)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise e
-        self.repofs = RepoFS('test_repo', 'mnt', True)
+        self.repofs = RepoFS('test_repo', self.mount, True)
         self.first_commit = '/commits-by-date/2005/6/7/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2005/6/7')[0]
         self.second_commit = '/commits-by-date/2005/6/10/' + self.repofs._get_commits_by_date(
@@ -136,7 +137,7 @@ class RepoFSTestCase(TestCase):
         self.assertTrue('tdir' in self.repofs.readdir('/tags', None))
         with self.assertRaises(FuseOSError):
             self.repofs.readdir('/tags/tagpartfoo/bar', None).next()
-        self.assertEqual(sum(1 for _ in self.repofs.readdir('/tags', None)), 8)
+        self.assertEqual(sum(1 for _ in self.repofs.readdir('/tags', None)), 9)
         self.assertEqual(sum(1 for _ in self.repofs.readdir('/tags/tdir', None)), 3)
         self.assertTrue('tname' in self.repofs.readdir('/tags/tdir', None))
         with self.assertRaises(FuseOSError):
@@ -208,6 +209,11 @@ class RepoFSTestCase(TestCase):
         self.assertEqual(self.repofs._target_from_symlink(
                 '/commits-by-hash/' + self.second_commit.split("/")[-1] + '/.git-parents/' + self.first_commit.split("/")[-1]),
                 self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
+        commit = self.repofs._git.commit_of_ref("refs/tags/t20070115la").split("/")[-1]
+        self.assertEqual(self.repofs._target_from_symlink(path.join('/commits-by-hash', commit, "link_a")),
+                path.join(self.mount, "commits-by-hash", commit, "file_a"))
+        self.assertEqual(self.repofs._target_from_symlink(path.join('/commits-by-date/2007/1/15', commit, "link_a")),
+                path.join(self.mount, "commits-by-date/2007/1/15", commit, "file_a"))
 
     def test_access_non_existent_dir(self):
         with self.assertRaises(FuseOSError):
@@ -245,6 +251,14 @@ class RepoFSTestCase(TestCase):
         self.assertEqual(st['st_mtime'], ctime)
         self.assertEqual(st['st_ctime'], ctime)
         self.assertNotEqual(st['st_atime'], ctime)
+
+    def test_is_symlink(self):
+        commit = self.repofs._git.commit_of_ref("refs/tags/t20070115la").split("/")[-1]
+        self.assertTrue(self.repofs._is_symlink(path.join("/commits-by-date/2007/1/15", commit, "link_a")))
+        self.assertFalse(self.repofs._is_symlink(path.join("/commits-by-date/2007/1/15", commit, "file_a")))
+
+        self.assertTrue(self.repofs._is_symlink(path.join("/commits-by-hash", commit, "link_a")))
+        self.assertFalse(self.repofs._is_symlink(path.join("/commits-by-hash", commit, "file_a")))
 
 if __name__ == "__main__":
     main()

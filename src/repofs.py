@@ -245,16 +245,26 @@ class RepoFS(Operations):
         else:
             raise FuseOSError(errno.ENOENT)
 
-    def _is_symlink(self, path):
-        if (path.startswith("/commits-by-date/")  and
-                path.split("/")[-2] in self._commit_metadata_folders() and
-                path.split("/")[-1] in self._git.all_commits()):
+    def _is_metadata_symlink(self, path):
+        elements = path.split("/")
+        if (path.startswith("/commits-by-date/") and
+                elements[-2] in self._commit_metadata_folders() and
+                elements[-1] in self._git.all_commits()):
             # XXX Must also check number of slashes
             return True
         elif (path.startswith("/commits-by-hash/") and
-                path.split("/")[-2] in self._commit_metadata_folders() and
-                path.split("/")[-1] in self._git.all_commits()):
+                elements[-2] in self._commit_metadata_folders() and
+                elements[-1] in self._git.all_commits()):
             return True
+
+    def _is_symlink(self, path):
+        if self._is_metadata_symlink(path):
+            return True
+        elements = path.split("/")
+        if ((path.startswith("/commits-by-date/") and len(elements) >= 5) or
+                (path.startswith("/commits-by-hash/") and len(elements) >= 2)):
+            return self._git.is_symlink(self._commit_from_path(path),
+                        self._git_path(path))
         elif path.startswith("/branches") and self._is_ref(path,
                                                            self._branch_refs):
             return True
@@ -263,10 +273,15 @@ class RepoFS(Operations):
         return False
 
     def _target_from_symlink(self, path):
-        if path.startswith("/commits-by-date/"):
-            return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
-        elif path.startswith("/commits-by-hash/"):
-            return os.path.join(self.mount, "commits-by-hash", path.split("/")[-1] + "/")
+        elements = path.split("/")
+        if self._is_metadata_symlink(path):
+            return os.path.join(self.mount, "commits-by-hash", elements[-1] + "/")
+        elif path.startswith("/commits-by-date") and len(elements) >= 6:
+            return os.path.join(self.mount, "/".join(elements[1:6]),
+                self._git.file_contents(self._commit_from_path(path), self._git_path(path)))
+        elif path.startswith("/commits-by-hash") and len(elements) >= 3:
+            return os.path.join(self.mount, "/".join(elements[1:3]),
+                self._git.file_contents(self._commit_from_path(path), self._git_path(path)))
         elif path.startswith("/branches/"):
             return self._commit_from_ref(path[10:]) + '/'
         elif path.startswith("/tags/"):
