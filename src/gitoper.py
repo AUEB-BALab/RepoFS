@@ -137,14 +137,9 @@ class GitOperations(object):
         """
         Returns the year of the repo's last commit
         """
-        most_recent_branch = self.cached_command(['branch', '-a',
-          '--sort=-committerdate']).splitlines()[0]
-	# Remote leading * (for HEAD) and spaces
-	most_recent_branch = re.sub(r'^\*?\s+', r'', most_recent_branch)
-        return int(self.cached_command(['log', '-n', '1',
+        return int(self.cached_command(['log', '-n', '1', '--all',
                                          '--date=format:%Y',
-                                         '--pretty=%ad',
-                                         most_recent_branch]
+                                         '--pretty=%ad']
                                          ))
 
     def refs(self, refs):
