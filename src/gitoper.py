@@ -127,19 +127,9 @@ class GitOperations(object):
         only one process on boot time.
         """
 
-	# Obtain head branch
-	head_branch = self.cached_command(['config', '--name-only',
-	  '--get-regexp', 'branch.*remote'], return_exit_code = False,
-	  silent=True)
-	if head_branch:
-	  head_branch = re.sub(r'^branch\.(.*)\.remote\n$', r'\1', head_branch)
-	else:
-	  head_branch = 'master'
-
         first_years = self.cached_command(['log', '--max-parents=0',
                                          '--date=format:%Y',
-                                         '--pretty=%ad',
-                                         head_branch]
+                                         '--pretty=%ad']
                                          ).splitlines()
         return int(sorted(first_years)[0])
 
