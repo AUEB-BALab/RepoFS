@@ -261,8 +261,8 @@ class RepoFS(Operations):
         if self._is_metadata_symlink(path):
             return True
         elements = path.split("/")
-        if ((path.startswith("/commits-by-date/") and len(elements) >= 5) or
-                (path.startswith("/commits-by-hash/") and len(elements) >= 2)):
+        if ((path.startswith("/commits-by-date/") and len(elements) >= 6) or
+                (path.startswith("/commits-by-hash/") and len(elements) >= 3)):
             return self._git.is_symlink(self._commit_from_path(path),
                         self._git_path(path))
         elif path.startswith("/branches") and self._is_ref(path,

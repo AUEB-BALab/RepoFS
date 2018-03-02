@@ -234,6 +234,10 @@ class GitOperations(object):
         return [c[0] for c in tree]
 
     def is_symlink(self, commit, path):
+        # the root of the repository can't be a symlink
+        if not path:
+            return False
+
         entry = self._get_entry(commit, path, return_tree=True)
         if entry.filemode == GIT_FILEMODE_LINK:
             return True
