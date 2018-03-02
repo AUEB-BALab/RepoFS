@@ -177,14 +177,6 @@ class GitOperations(object):
         """
         return self.cached_command(['log', '--all', '--pretty=%H']).splitlines()
 
-    def _format_to_link(self, path, commit):
-        """ Return the specified commit as a symbolic link for the
-        specified path"""
-        time = datetime.datetime.fromtimestamp(commit.commit_time).strftime("%Y/%m/%d")
-        # Make value relative to specified path
-        updirs = (path.count('/') + 1) * '../'
-        return updirs + "commits-by-date/%s/%s" % (time, commit.id)
-
     def _get_commit_from_ref(self, ref):
         commit = self._pygit.revparse_single(ref)
         if isinstance(commit, Commit):
@@ -204,12 +196,11 @@ class GitOperations(object):
             return self._refs[ref]
 
         commit = self._get_commit_from_ref(ref)
-        path = ""
+        self._refs[ref] = ""
         if commit:
-            path = self._format_to_link(ref, commit)
+            self._refs[ref] = str(commit.id)
 
-        self._refs[ref] = path
-        return path
+        return self._refs[ref]
 
     def commit_parents(self, commit):
         """

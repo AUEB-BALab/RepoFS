@@ -272,6 +272,11 @@ class RepoFS(Operations):
             return True
         return False
 
+    def _format_to_link(self, commit):
+        """ Return the specified commit as a symbolic link to
+        commits-by-hash"""
+        return os.path.join(self.mount, "commits-by-hash", commit) + "/"
+
     def _target_from_symlink(self, path):
         elements = path.split("/")
         if self._is_metadata_symlink(path):
@@ -283,9 +288,11 @@ class RepoFS(Operations):
             return os.path.join(self.mount, "/".join(elements[1:3]),
                 self._git.file_contents(self._commit_from_path(path), self._git_path(path)))
         elif path.startswith("/branches/"):
-            return self._commit_from_ref(path[10:]) + '/'
+            commit = self._commit_from_ref(path[10:])
+            return self._format_to_link(commit)
         elif path.startswith("/tags/"):
-            return self._commit_from_ref(path[6:]) + '/'
+            commit = self._commit_from_ref(path[6:])
+            return self._format_to_link(commit)
         else:
             raise FuseOSError(errno.ENOENT)
 
