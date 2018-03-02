@@ -289,9 +289,13 @@ class RepoFS(Operations):
                 self._git.file_contents(self._commit_from_path(path), self._git_path(path)))
         elif path.startswith("/branches/"):
             commit = self._commit_from_ref(path[10:])
+            if commit not in self._git.all_commits():
+                return ""
             return self._format_to_link(commit)
         elif path.startswith("/tags/"):
             commit = self._commit_from_ref(path[6:])
+            if commit not in self._git.all_commits():
+                return ""
             return self._format_to_link(commit)
         else:
             raise FuseOSError(errno.ENOENT)
