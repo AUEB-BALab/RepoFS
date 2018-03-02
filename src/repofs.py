@@ -453,6 +453,10 @@ def main():
     if not os.path.exists(os.path.join(args.repo, '.git')):
         raise Exception("Not a git repository")
 
+    foreground = True
+    if sys.argv[0].endswith("repofs"):
+        foreground = False
+
     sys.stderr.write("Examining repository.  Please wait..\n")
     start = datetime.datetime.now()
     repo = RepoFS(args.repo, args.mount, args.nocache)
@@ -460,7 +464,7 @@ def main():
     sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
     sys.stderr.write("Repository %s is now visible at %s\n" % (args.repo,
                                                                args.mount))
-    FUSE(repo, args.mount, nothreads=True, foreground=True)
+    FUSE(repo, args.mount, nothreads=True, foreground=foreground)
 
 if __name__ == '__main__':
     main()
