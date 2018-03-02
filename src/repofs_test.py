@@ -198,11 +198,11 @@ class RepoFSTestCase(TestCase):
 
     def test_target_from_symlink(self):
         self.assertEqual(self.repofs._target_from_symlink('/tags/t20091011ca'),
-                         '..' + self.recent_commit + '/')
+                         self.mount + self.recent_commit_by_hash + '/')
         self.assertEqual(self.repofs._target_from_symlink('/branches/heads/master'),
-                         '../..' + self.recent_commit + '/')
+                         self.mount + self.recent_commit_by_hash + '/')
         self.assertEqual(self.repofs._target_from_symlink('/branches/master'),
-                         '..' + self.recent_commit + '/')
+                         self.mount + self.recent_commit_by_hash + '/')
         self.assertEqual(self.repofs._target_from_symlink(
                 self.second_commit + '/.git-parents/' + self.first_commit.split("/")[-1]),
                 self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
