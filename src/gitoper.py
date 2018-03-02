@@ -175,9 +175,7 @@ class GitOperations(object):
         """
         Returns a list of all commit hashes
         """
-        commits = self.cached_command(['log', '--all', '--pretty=%H']).splitlines()
-        commits = [commit.strip() for commit in commits]
-        return commits
+        return self.cached_command(['log', '--all', '--pretty=%H']).splitlines()
 
     def _format_to_link(self, path, commit):
         """ Return the specified commit as a symbolic link for the
