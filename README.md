@@ -26,7 +26,7 @@ Older Debian Distributions (\< 9.3)
 3. `python setup.py install`
 
 Regarding issues arrising from the installation of `pygit2`,
-follow the instructions on [this page](www.pygit2.org/install.html).
+follow the instructions on [this page](http://www.pygit2.org/install.html).
 
 Usage
 =====
