@@ -1,3 +1,5 @@
+![Build status](https://api.travis-ci.org/AUEB-BALab/RepoFS.png?branch=master)
+
 RepoFS
 ======
 Filesystem view of version control repositories
