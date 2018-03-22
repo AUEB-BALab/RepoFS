@@ -365,6 +365,15 @@ class RepoFS(Operations):
         except GitOperError:
             raise FuseOSError(errno.ENOENT)
 
+    def get_commit_time(self, path):
+        try:
+            commit = self._commit_from_path(path)
+            if not commit:
+                return -1
+            return self._git.get_commit_time(commit)
+        except FuseOSError: # commit doesn't exist on path
+            return -1
+
     def getattr(self, path, fh=None):
         uid, gid, pid = fuse_get_context()
         st = dict(st_uid=uid, st_gid=gid)
@@ -381,14 +390,10 @@ class RepoFS(Operations):
 
         t = time()
         st['st_atime'] = st['st_ctime'] = st['st_mtime'] = t
-        try:
-            commit = self._commit_from_path(path)
-            if commit:
-                st['st_ctime'] = st['st_mtime'] = self._git.get_commit_time(commit)
-            else:
-                st['st_ctime'] = st['st_mtime'] = t
-        except FuseOSError: # commit doesn't exist on path
-            st['st_ctime'] = st['st_mtime'] = t
+
+        commit_time = self.get_commit_time(path)
+        if commit_time != -1:
+            st['st_ctime'] = st['st_mtime'] = commit_time
 
         return st
 
