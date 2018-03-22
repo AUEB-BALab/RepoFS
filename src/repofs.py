@@ -459,7 +459,7 @@ def main():
 
     sys.stderr.write("Examining repository.  Please wait..\n")
     start = datetime.datetime.now()
-    repo = RepoFS(args.repo, args.mount, args.nocache)
+    repo = RepoFS(os.path.abspath(args.repo), os.path.abspath(args.mount), args.nocache)
     end = datetime.datetime.now()
     sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
     sys.stderr.write("Repository %s is now visible at %s\n" % (args.repo,
