@@ -22,7 +22,7 @@ import os
 import sys
 
 from time import time
-from stat import S_IFDIR, S_IFREG, S_IFLNK
+from stat import S_IFDIR, S_IFREG, S_IFLNK, S_IWUSR
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
 from gitoper import GitOperations, GitOperError
@@ -31,6 +31,9 @@ from gitoper import GitOperations, GitOperError
 class RepoFS(Operations):
     def __init__(self, repo, mount, nocache):
         self.repo = repo
+        self.repo_mode = os.stat(repo).st_mode
+        # remove write permission and directory flag
+        self.mnt_mode = self.repo_mode & ~S_IWUSR & ~S_IFDIR
         self.mount = mount
         self.nocache = nocache
         self._git = GitOperations(repo, not nocache, "giterr.log")
@@ -378,14 +381,14 @@ class RepoFS(Operations):
         uid, gid, pid = fuse_get_context()
         st = dict(st_uid=uid, st_gid=gid)
         if self._is_dir(path):
-            st['st_mode'] = (S_IFDIR | 0o440)
+            st['st_mode'] = (S_IFDIR | self.mnt_mode)
             st['st_nlink'] = 2
         elif self._is_symlink(path):
-            st['st_mode'] = (S_IFLNK | 0o777)
+            st['st_mode'] = (S_IFLNK | self.mnt_mode)
             st['st_nlink'] = 1
             st['st_size'] = len(self._target_from_symlink(path))
         else:
-            st['st_mode'] = (S_IFREG | 0o440)
+            st['st_mode'] = (S_IFREG | self.mnt_mode)
             st['st_size'] = self._get_file_size(path)
 
         t = time()
