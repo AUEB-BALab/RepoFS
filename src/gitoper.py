@@ -183,8 +183,7 @@ class GitOperations(object):
         commits = self._get_commits_iterator()
 
         if prefix:
-            iterator = self._get_commits_iterator()
-            commits = filter(lambda x: x.startswith(prefix), list(iterator))
+            commits = iter([c for c in commits if c.startswith(prefix)])
 
         for commit in commits:
             yield commit.strip()
