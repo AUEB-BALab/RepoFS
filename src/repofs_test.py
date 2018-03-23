@@ -103,15 +103,15 @@ class RepoFSTestCase(TestCase):
         self.assertEqual(len(self.repofs._get_commits_by_date('/commits-by-date/2005/6/30')[0]), 40)
 
     def test_verify_commits_by_hash(self):
-        self.assertGreater(len(self.repofs._get_commits_by_hash('/commits-by-hash')), 3)
-        self.assertGreater(len(self.repofs._get_commits_by_hash('/commits-by-hash/')), 3)
-        self.assertEqual(len(self.repofs._get_commits_by_hash('/commits-by-hash/')[0]), 40)
+        self.assertGreater(len(list(self.repofs._get_commits_by_hash('/commits-by-hash'))), 3)
+        self.assertGreater(len(list(self.repofs._get_commits_by_hash('/commits-by-hash/'))), 3)
+        self.assertEqual(len(list(self.repofs._get_commits_by_hash('/commits-by-hash/').next())), 40)
 
         self.assertEqual(len(self.repofs_htree._get_commits_by_hash('/commits-by-hash')), 256)
         self.assertEqual(len(self.repofs_htree._get_commits_by_hash('/commits-by-hash/aa/')), 256)
         self.assertEqual(len(self.repofs_htree._get_commits_by_hash('/commits-by-hash/aa/bb/')), 256)
         c = self.recent_commit_by_hash.split("/")[-1]
-        self.assertGreaterEqual(len(self.repofs_htree._get_commits_by_hash(os.path.join('/', 'commits-by-hash', c[:2], c[2:4], c[4:6]))), 1)
+        self.assertGreaterEqual(len(list(self.repofs_htree._get_commits_by_hash(os.path.join('/', 'commits-by-hash', self.repofs_htree._commit_hex_path(c))))), 1)
 
     def test_path_to_refs(self):
         self.assertEqual(self.repofs._path_to_refs('/branches/heads/foo'),

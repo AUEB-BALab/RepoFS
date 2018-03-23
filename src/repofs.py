@@ -447,7 +447,7 @@ class RepoFS(Operations):
         elif path.startswith("/commits-by-date"):
             dirents.extend(self._get_commits_by_date(path))
         elif path.startswith("/commits-by-hash"):
-            dirents.extend(self._get_commits_by_hash(path))
+            dirents.extend(list(self._get_commits_by_hash(path)))
         elif path.startswith('/branches'):
             dirents.extend(self._get_refs(path, self._branch_refs))
         elif path.startswith('/tags'):

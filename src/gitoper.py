@@ -19,6 +19,7 @@ import datetime
 import os
 import re
 import sys
+import StringIO
 
 from subprocess import check_output, CalledProcessError, call
 from pygit2 import Repository, Commit, GIT_OBJ_TREE, GIT_FILEMODE_LINK
@@ -36,6 +37,7 @@ class GitOperations(object):
         self._trees_filled = {}
         self._sizes = {}
         self._refs = {}
+        self._commits_iterator = None
         self.years = range(self._first_year(), self._last_year() + 1)
 
     def cached_command(self, list, return_exit_code=False, silent=False):
@@ -171,14 +173,21 @@ class GitOperations(object):
         commits = [commit.strip() for commit in commits]
         return commits
 
+    def _get_commits_iterator(self):
+        return StringIO.StringIO(self.cached_command(['log', '--all', '--pretty=%H']))
+
     def all_commits(self, prefix=""):
         """
         Returns a list of all commit hashes
         """
-        commits = self.cached_command(['log', '--all', '--pretty=%H']).splitlines()
+        commits = self._get_commits_iterator()
+
         if prefix:
-            return [commit for commit in commits if commit.startswith(prefix)]
-        return commits
+            iterator = self._get_commits_iterator()
+            commits = filter(lambda x: x.startswith(prefix), list(iterator))
+
+        for commit in commits:
+            yield commit.strip()
 
     def _get_commit_from_ref(self, ref):
         commit = self._pygit.revparse_single(ref)
