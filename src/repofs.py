@@ -22,6 +22,7 @@ import os
 import sys
 
 from time import time
+from itertools import product
 from stat import S_IFDIR, S_IFREG, S_IFLNK, S_IWUSR
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
@@ -29,13 +30,21 @@ from gitoper import GitOperations, GitOperError
 
 
 class RepoFS(Operations):
-    def __init__(self, repo, mount, nocache):
+    _HASH_GIT_START = 2
+    _HASH_GIT_START_TREE = 5
+
+    def __init__(self, repo, mount, hash_trees, nocache):
         self.repo = repo
         self.repo_mode = os.stat(repo).st_mode
         # remove write permission and directory flag
         self.mnt_mode = self.repo_mode & ~S_IWUSR & ~S_IFDIR
         self.mount = mount
         self.nocache = nocache
+        self.hash_trees = hash_trees
+        self.git_start = self._HASH_GIT_START
+        self._hex = self._get_hex()
+        if self.hash_trees:
+            self.git_start = self._HASH_GIT_START_TREE
         self._git = GitOperations(repo, not nocache, "giterr.log")
         self._branch_refs = ['refs/heads/', 'refs/remotes/']
         self._tag_refs = ['refs/tags']
@@ -120,6 +129,11 @@ class RepoFS(Operations):
             raise FuseOSError(errno.ENOTDIR)
         return result
 
+    def _verify_hash_path(self, elements):
+        for elem in elements:
+            if elem not in self._hex:
+                raise FuseOSError(errno.ENOENT)
+
     def _verify_date_path(self, elements):
         """ Raise an exception if the elements array representing a commit
         date path [y, m, d] do not represent a valid date. """
@@ -197,14 +211,27 @@ class RepoFS(Operations):
             # /commits-by-date/yyyy/mm/dd/hash
             return self._get_commits_from_path_list(elements[3:])
 
+    def _get_hex(self, repeat=2):
+        digits = '0123456789abcdef'
+        return list(map(''.join, product(digits, repeat=repeat)))
+
     def _get_commits_by_hash(self, path):
         """ Return directory entries for path elements under the
         /commits-by-hash entry. """
 
-        elements = path.split("/", 3)[2:]
+        elements = path.split("/", 6)[2:]
         # Remove trailing empty slash
         if len(elements) > 0 and elements[-1] == '':
             del elements[-1]
+
+        if self.hash_trees:
+            if len(elements) <= 2:
+                return self._hex
+            elif len(elements) == 3:
+                return self._git.all_commits(''.join(elements))
+            else:
+                return self._get_commits_from_path_list(elements[3:])
+
         if len(elements) == 0:
             # /commits-by-hash
             return self._git.all_commits()
@@ -241,10 +268,10 @@ class RepoFS(Operations):
             else:
                 return path.split("/", 6)[-1]
         elif path.startswith('/commits-by-hash/'):
-            if path.count("/") == 2:
+            if path.count("/") == self.git_start:
                 return ""
             else:
-                return path.split("/", 3)[-1]
+                return path.split("/", self.git_start + 1)[-1]
         else:
             raise FuseOSError(errno.ENOENT)
 
@@ -263,9 +290,9 @@ class RepoFS(Operations):
     def _is_symlink(self, path):
         if self._is_metadata_symlink(path):
             return True
-        elements = path.split("/")
+        elements = path.split("/")[1:]
         if ((path.startswith("/commits-by-date/") and len(elements) >= 6) or
-                (path.startswith("/commits-by-hash/") and len(elements) >= 3)):
+                (path.startswith("/commits-by-hash/") and len(elements) >= self.git_start + 1)):
             return self._git.is_symlink(self._commit_from_path(path),
                         self._git_path(path))
         elif path.startswith("/branches") and self._is_ref(path,
@@ -275,20 +302,31 @@ class RepoFS(Operations):
             return True
         return False
 
+    def _hash_updir(self, c):
+        if not self.hash_trees:
+            return ""
+        return os.path.join(c[:2], c[2:4], c[4:6])
+
     def _format_to_link(self, commit):
         """ Return the specified commit as a symbolic link to
         commits-by-hash"""
-        return os.path.join(self.mount, "commits-by-hash", commit) + "/"
+        return os.path.join(self.mount, "commits-by-hash", self._hash_updir(commit), commit) + "/"
+
+    def _commit_hex_path(self, commit):
+        if not self.hash_trees:
+            return ""
+
+        return os.path.join(commit[:2], commit[2:4], commit[4:6])
 
     def _target_from_symlink(self, path):
         elements = path.split("/")
         if self._is_metadata_symlink(path):
-            return os.path.join(self.mount, "commits-by-hash", elements[-1] + "/")
+            return os.path.join(self.mount, "commits-by-hash", self._commit_hex_path(elements[-1]), elements[-1] + "/")
         elif path.startswith("/commits-by-date") and len(elements) >= 6:
             return os.path.join(self.mount, "/".join(elements[1:6]),
                 self._git.file_contents(self._commit_from_path(path), self._git_path(path)))
-        elif path.startswith("/commits-by-hash") and len(elements) >= 3:
-            return os.path.join(self.mount, "/".join(elements[1:3]),
+        elif path.startswith("/commits-by-hash") and len(elements) >= self.git_start + 1:
+            return os.path.join(self.mount, "/".join(elements[1:self.git_start+1]),
                 self._git.file_contents(self._commit_from_path(path), self._git_path(path)))
         elif path.startswith("/branches/"):
             commit = self._commit_from_ref(path[10:])
@@ -310,10 +348,10 @@ class RepoFS(Operations):
             else:
                 return path.split("/", 6)[5]
         elif path.startswith('/commits-by-hash/'):
-            if path.count("/") < 2:
+            if path.count("/") < self.git_start:
                 return ""
             else:
-                return path.split("/", 3)[2]
+                return path.split("/", self.git_start + 1)[self.git_start]
         else:
             raise FuseOSError(errno.ENOENT)
 
@@ -337,17 +375,19 @@ class RepoFS(Operations):
             else:
                 return self._git.is_dir(elements[4], elements[5])
         elif elements[0] == 'commits-by-hash':
-            if len(elements) < 2:
+            if self.hash_trees:
+                self._verify_hash_path(elements[1:4])
+
+            if len(elements) < self.git_start:
                 return True
-            elif len(elements) == 2:
-                # Includes commit hash
-                return elements[1] in self._git.all_commits()
-            elif elements[2] in self._commit_metadata_folders():
-                if len(elements) == 4:
+            elif len(elements) == self.git_start:
+                return elements[self.git_start-1] in self._git.all_commits(''.join(elements[1:self.git_start-1]))
+            elif elements[self.git_start] in self._commit_metadata_folders():
+                if len(elements) == self.git_start + 2:
                     return False
                 return True
             else:
-                return self._git.is_dir(elements[1], "/".join(elements[2:]))
+                return self._git.is_dir(elements[self.git_start-1], "/".join(elements[self.git_start:]))
         elif elements in [['branches'], ['tags']]:
             return True
         elif elements[0] == 'branches':
@@ -450,6 +490,13 @@ def main():
     parser.add_argument("mount", help="Path where the FileSystem will be mounted." \
     "If it doesn't exist it is created and if it exists and contains files RepoFS exits.")
     parser.add_argument(
+        "--hash-trees",
+        help="Store 256 entries (first two digits) at each level" \
+            "of commits-by-hash for the first three levels.",
+        action="store_true",
+        default=False
+    )
+    parser.add_argument(
         "-nocache",
         "--nocache",
         help="Do not cache repository metadata. FileSystem updates when the repository changes.",
@@ -467,7 +514,7 @@ def main():
 
     sys.stderr.write("Examining repository.  Please wait..\n")
     start = datetime.datetime.now()
-    repo = RepoFS(os.path.abspath(args.repo), os.path.abspath(args.mount), args.nocache)
+    repo = RepoFS(os.path.abspath(args.repo), os.path.abspath(args.mount), args.hash_trees, args.nocache)
     end = datetime.datetime.now()
     sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
     sys.stderr.write("Repository %s is now visible at %s\n" % (args.repo,

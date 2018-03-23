@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+import os
+
 from unittest import TestCase, main
 from os import mkdir, rmdir, errno, path
 
@@ -25,20 +27,31 @@ from fuse import FuseOSError
 class RepoFSTestCase(TestCase):
     def setUp(self):
         self.mount = 'mnt'
+        self.mount2 = 'mnt2'
         try:
             mkdir(self.mount)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise e
-        self.repofs = RepoFS('test_repo', self.mount, True)
+        self.repofs = RepoFS('test_repo', self.mount, False, True)
+        self.repofs_htree = RepoFS('test_repo', self.mount2, True, True)
         self.first_commit = '/commits-by-date/2005/6/7/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2005/6/7')[0]
         self.second_commit = '/commits-by-date/2005/6/10/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2005/6/10')[0]
         self.recent_commit = '/commits-by-date/2009/10/11/' + self.repofs._get_commits_by_date(
             '/commits-by-date/2009/10/11')[0]
-        self.recent_commit_by_hash = '/commits-by-hash/' + self.repofs._get_commits_by_date(
-            '/commits-by-date/2009/10/11')[0]
+        rcommit = self.repofs._get_commits_by_date('/commits-by-date/2009/10/11')[0]
+        self.recent_commit_by_hash = '/commits-by-hash/' + rcommit
+        self.recent_commit_by_hash_tree = os.path.join('/commits-by-hash', self.repofs_htree._commit_hex_path(rcommit), rcommit)
+
+    def test_git_start(self):
+        self.assertEqual(self.repofs.git_start, self.repofs._HASH_GIT_START)
+        self.assertEqual(self.repofs_htree.git_start, self.repofs._HASH_GIT_START_TREE)
+
+    def test_hash_updir(self):
+        self.assertEqual(self.repofs_htree._hash_updir("aabbcc..."), "aa/bb/cc")
+        self.assertEqual(self.repofs_htree._hash_updir("ddaabbcc..."), "dd/aa/bb")
 
     def test_days_per_month(self):
         self.assertEqual(self.repofs._days_per_month(2017),
@@ -94,6 +107,12 @@ class RepoFSTestCase(TestCase):
         self.assertGreater(len(self.repofs._get_commits_by_hash('/commits-by-hash/')), 3)
         self.assertEqual(len(self.repofs._get_commits_by_hash('/commits-by-hash/')[0]), 40)
 
+        self.assertEqual(len(self.repofs_htree._get_commits_by_hash('/commits-by-hash')), 256)
+        self.assertEqual(len(self.repofs_htree._get_commits_by_hash('/commits-by-hash/aa/')), 256)
+        self.assertEqual(len(self.repofs_htree._get_commits_by_hash('/commits-by-hash/aa/bb/')), 256)
+        c = self.recent_commit_by_hash.split("/")[-1]
+        self.assertGreaterEqual(len(self.repofs_htree._get_commits_by_hash(os.path.join('/', 'commits-by-hash', c[:2], c[2:4], c[4:6]))), 1)
+
     def test_path_to_refs(self):
         self.assertEqual(self.repofs._path_to_refs('/branches/heads/foo'),
                          ['heads', 'foo'])
@@ -107,6 +126,10 @@ class RepoFSTestCase(TestCase):
             '/commits-by-date/2017/12/28/ed34f8.../README'), 'README')
         self.assertEqual(self.repofs._git_path(
             '/commits-by-date/2017/12/28/ed34f8...'), '')
+        self.assertEqual(self.repofs_htree._git_path(
+            '/commits-by-hash/aa/bb/cc/aabbcc.../src/foo'), 'src/foo')
+        self.assertEqual(self.repofs_htree._git_path(
+            '/commits-by-hash/aa/bb/cc/aabbcc...'), '')
 
     def test_verify_commit_files(self):
         entries = self.repofs._get_commits_by_date(self.recent_commit)
@@ -172,6 +195,11 @@ class RepoFSTestCase(TestCase):
         with self.assertRaises(FuseOSError):
             self.repofs._is_dir('/commits-by-date/2005/7/lala')
 
+        self.assertTrue(self.repofs_htree._is_dir(self.recent_commit_by_hash_tree + "/dir_a"))
+        self.assertFalse(self.repofs_htree._is_dir(self.recent_commit_by_hash_tree + "/dir_a/file_aa"))
+        with self.assertRaises(FuseOSError):
+            self.repofs_htree._is_dir('/commits-by-hash/zz')
+
     def test_is_branch_ref(self):
         br = self.repofs._branch_refs
         self.assertTrue(self.repofs._is_ref('/branches/heads/master', br))
@@ -197,23 +225,37 @@ class RepoFSTestCase(TestCase):
         self.assertFalse(self.repofs._is_symlink('/branches/heads/feature'))
 
     def test_target_from_symlink(self):
+        first_commit = self.first_commit.split("/")[-1]
+        second_commit = self.second_commit.split("/")[-1]
+
         self.assertEqual(self.repofs._target_from_symlink('/tags/t20091011ca'),
-                         self.mount + self.recent_commit_by_hash + '/')
+                path.join(self.mount, self.recent_commit_by_hash[1:], ''))
         self.assertEqual(self.repofs._target_from_symlink('/branches/heads/master'),
-                         self.mount + self.recent_commit_by_hash + '/')
+                path.join(self.mount, self.recent_commit_by_hash[1:], ''))
         self.assertEqual(self.repofs._target_from_symlink('/branches/master'),
-                         self.mount + self.recent_commit_by_hash + '/')
+                path.join(self.repofs.mount, self.recent_commit_by_hash[1:], ''))
         self.assertEqual(self.repofs._target_from_symlink(
-                self.second_commit + '/.git-parents/' + self.first_commit.split("/")[-1]),
-                self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
+                path.join(self.second_commit, '.git-parents', first_commit)),
+                path.join(self.repofs.mount, 'commits-by-hash', first_commit, ""))
         self.assertEqual(self.repofs._target_from_symlink(
-                '/commits-by-hash/' + self.second_commit.split("/")[-1] + '/.git-parents/' + self.first_commit.split("/")[-1]),
-                self.repofs.mount + '/commits-by-hash/' + self.first_commit.split("/")[-1] + "/")
+                path.join('/', 'commits-by-hash', second_commit, '.git-parents', first_commit)),
+                path.join(self.repofs.mount, 'commits-by-hash', first_commit, ""))
+        self.assertEqual(self.repofs_htree._target_from_symlink(
+                path.join('/', 'commits-by-hash', self.repofs_htree._commit_hex_path(second_commit), second_commit, '.git-parents', first_commit)),
+                path.join(self.repofs_htree.mount, 'commits-by-hash', self.repofs_htree._commit_hex_path(first_commit), first_commit, ""))
         commit = self.repofs._git.commit_of_ref("refs/tags/t20070115la").split("/")[-1]
         self.assertEqual(self.repofs._target_from_symlink(path.join('/commits-by-hash', commit, "link_a")),
-                path.join(self.mount, "commits-by-hash", commit, "file_a"))
+                path.join(self.repofs.mount, "commits-by-hash", commit, "file_a"))
+        self.assertEqual(self.repofs_htree._target_from_symlink(
+                path.join('/', 'commits-by-hash', self.repofs_htree._commit_hex_path(commit), commit, "link_a")),
+                path.join(self.repofs_htree.mount, "commits-by-hash", self.repofs_htree._commit_hex_path(commit), commit, "file_a"))
         self.assertEqual(self.repofs._target_from_symlink(path.join('/commits-by-date/2007/1/15', commit, "link_a")),
-                path.join(self.mount, "commits-by-date/2007/1/15", commit, "file_a"))
+                path.join(self.repofs.mount, "commits-by-date/2007/1/15", commit, "file_a"))
+
+    def test_commit_from_path(self):
+        self.assertEqual(self.repofs._commit_from_path(self.recent_commit), self.recent_commit.split("/")[-1])
+        self.assertEqual(self.repofs._commit_from_path(self.recent_commit_by_hash), self.recent_commit_by_hash.split("/")[-1])
+        self.assertEqual(self.repofs_htree._commit_from_path(self.recent_commit_by_hash_tree), self.recent_commit_by_hash_tree.split("/")[-1])
 
     def test_access_non_existent_dir(self):
         with self.assertRaises(FuseOSError):

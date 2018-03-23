@@ -45,7 +45,7 @@ class GitOperations(object):
         If return_exit_code is set, then the return value is True of False
         depending on whether the command exited with 0 or not.
 	If silent is true then failed executions return None,
-	without displaying an error. 
+	without displaying an error.
         """
 
         list = ['git', '--git-dir', self._gitrepo] + list
@@ -171,11 +171,14 @@ class GitOperations(object):
         commits = [commit.strip() for commit in commits]
         return commits
 
-    def all_commits(self):
+    def all_commits(self, prefix=""):
         """
         Returns a list of all commit hashes
         """
-        return self.cached_command(['log', '--all', '--pretty=%H']).splitlines()
+        commits = self.cached_command(['log', '--all', '--pretty=%H']).splitlines()
+        if prefix:
+            return [commit for commit in commits if commit.startswith(prefix)]
+        return commits
 
     def _get_commit_from_ref(self, ref):
         commit = self._pygit.revparse_single(ref)
