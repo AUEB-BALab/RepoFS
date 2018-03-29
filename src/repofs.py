@@ -33,9 +33,10 @@ class RepoFS(Operations):
     _HASH_GIT_START = 2
     _HASH_GIT_START_TREE = 5
 
-    def __init__(self, repo, mount, hash_trees, nocache):
+    def __init__(self, repo, mount, hash_trees, no_ref_symlinks, nocache):
         self.repo = repo
         self.repo_mode = os.stat(repo).st_mode
+        self.no_ref_symlinks = no_ref_symlinks
         # remove write permission and directory flag
         self.mnt_mode = self.repo_mode & ~S_IWUSR & ~S_IFDIR
         self.mount = mount
@@ -70,25 +71,38 @@ class RepoFS(Operations):
     def _get_root(self):
         return ['commits-by-date', 'commits-by-hash', 'branches', 'tags']
 
-    def _path_to_refs(self, path):
+    def _path_to_refs(self, path, refs):
         """Convert path into a list of Git refs.
         /branch paths will start after the branch so as to include
         heads or remotes.
         /tags paths will start from the beginning, because this is
-        the name under which tags are stored."""
+        the name under which tags are stored.
+        If a ref exists inside the path, returns the ref,
+        otherwise it returns the part of the path after branches"""
         if path.startswith('/branches'):
-            return path.split('/')[2:]
+            path = path.split('/')[2:]
         elif path.startswith('/tags'):
-            return path.split('/')[1:]
+            path = path.split('/')[1:]
         else:
             # Internal error
-            raise FuseOSError(errno.EIO)
+            raise RepoFSError("Invalid path")
 
-    def _is_ref(self, path, refs):
+        if len(path) > 1 and self.no_ref_symlinks:
+            # check if the path contains a full ref
+            for ref in self._git.refs(refs):
+                ref = ref.split('/')[1:]
+                if len(path) > len(ref) and "/".join(path).startswith("/".join(ref)):
+                    return ref
+
+        return path
+
+    def _is_ref(self, path, refs=None):
         """Return true if the specified path (e.g. branches/master, or
         tags/V1.0) refers to one of the specified refs, (e.g.
         refs/heads or refs/tags). """
-        path = self._path_to_refs(path)
+        if not refs:
+            refs = self._branch_refs + self._tag_refs
+        path = self._path_to_refs(path, refs)
         for ref in self._git.refs(refs):
             ref = ref.split('/')[1:]
             # print('Check path [%s] == ref [%s]' % (path, ref))
@@ -100,18 +114,84 @@ class RepoFS(Operations):
         """Return true if the specified path refers to a ref name prefix
         up to a path separator for the specified refs, e.g.
         refs/heads or refs/tags. """
-        path = self._path_to_refs(path)
+        path = self._path_to_refs(path, refs)
         for ref in self._git.refs(refs):
             ref = ref.split('/')[1:]
             if path == ref[:len(path)] and len(path) < len(ref):
                 return True
         return False
 
+    def _get_branch_ref_limit(self, path, refs):
+        """
+        Returns the path position where the ref path ends.
+        """
+        # prefix: heads/master
+        # /branches/heads/
+        # whole path /branches/heads/master/.../
+        if self._is_ref(path, refs):
+            # /branches/ref/path
+            # ref is heads/master
+            return len(self._path_to_refs(path, refs)) + 1
+        else:
+            # /branches/heads
+            return path.count("/")
+
+    def _get_tag_ref_limit(self, path, refs):
+        if self._is_ref(path, refs):
+            return len(self._path_to_refs(path, refs))
+        else:
+            return path.count("/")
+
+    def _get_branches(self, path):
+        elements = path.split("/")
+        if elements[1] != "branches":
+            raise RepoFSError("_get_branches called with invalid path")
+
+        if len(elements) == 2:
+            return self._get_refs(path, self._branch_refs)
+
+        if elements[2] == "heads" or elements[2] == "remotes":
+            ref_limit = self._get_branch_ref_limit(path, self._branch_refs)
+        else:
+            raise FuseOSError(errno.ENOENT)
+
+        if self._is_ref_prefix(path, self._branch_refs):
+            return self._get_refs(path, self._branch_refs)
+        elif len(elements) > ref_limit and self.no_ref_symlinks:
+            ref = "/".join(elements[2:ref_limit+1])
+            cpath = "/".join(elements[ref_limit+1:])
+            return self._get_commit_content_by_ref(ref, cpath)
+        else:
+            raise FuseOSError(errno.ENOENT)
+
+    def _get_tags(self, path):
+        elements = path.split("/")
+        if elements[1] != "tags":
+            raise RepoFSError("_get_tags called with invalid path")
+
+        if len(elements) == 2:
+            return self._get_refs(path, self._tag_refs)
+
+        ref_limit = self._get_tag_ref_limit(path, self._tag_refs)
+        if self._is_ref_prefix(path, self._tag_refs):
+            return self._get_refs(path, self._tag_refs)
+        elif len(elements) > ref_limit and self.no_ref_symlinks and self._is_ref(path):
+            ref = "/".join(elements[1:ref_limit+1])
+            cpath = "/".join(elements[ref_limit+1:])
+            return self._get_commit_content_by_ref(ref, cpath)
+        else:
+            raise FuseOSError(errno.ENOENT)
+
+    def _get_commit_content_by_ref(self, ref, cpath):
+        commit = self._commit_from_ref(ref)
+        elements = [commit, cpath]
+        return self._get_commits_from_path_list(elements)
+
     def _get_refs(self, path, refs):
         """Return the ref elements that match the specified path and
         refs, e.g. refs/heads or refs/tags. """
         # print("path is %s" % path)
-        path = self._path_to_refs(path)
+        path = self._path_to_refs(path, refs)
         result = set()
         found = False
         # Find common prefix
@@ -127,6 +207,7 @@ class RepoFS(Operations):
 
         if not found:
             raise FuseOSError(errno.ENOTDIR)
+
         return result
 
     def _verify_hash_path(self, elements):
@@ -272,6 +353,17 @@ class RepoFS(Operations):
                 return ""
             else:
                 return path.split("/", self.git_start + 1)[-1]
+        elif path.startswith("/branches/") and self.no_ref_symlinks:
+            ref_limit = self._get_branch_ref_limit(path, self._branch_refs)
+            if self._is_ref_prefix(path, self._branch_refs) or path.count("/") <= ref_limit:
+                return ""
+            else:
+                return path.split("/", ref_limit + 1)[-1]
+        elif path.startswith("/tags/") and self.no_ref_symlinks:
+            if path.count("/") == 2:
+                return ""
+            else:
+                return path.split("/", 3)[-1]
         else:
             raise FuseOSError(errno.ENOENT)
 
@@ -286,6 +378,13 @@ class RepoFS(Operations):
                 elements[-2] in self._commit_metadata_folders() and
                 elements[-1] in self._git.all_commits()):
             return True
+        elif ((path.startswith("/branches/") or path.startswith("/tags")) and
+                self.no_ref_symlinks and
+                self._is_ref(path) and
+                elements[-2] in self._commit_metadata_folders() and
+                elements[-1] in self._git.all_commits()):
+            return True
+        return False
 
     def _is_symlink(self, path):
         if self._is_metadata_symlink(path):
@@ -295,10 +394,13 @@ class RepoFS(Operations):
                 (path.startswith("/commits-by-hash/") and len(elements) >= self.git_start + 1)):
             return self._git.is_symlink(self._commit_from_path(path),
                         self._git_path(path))
-        elif path.startswith("/branches") and self._is_ref(path,
-                                                           self._branch_refs):
+        elif (path.startswith("/branches") and
+                self._is_ref(path, self._branch_refs) and
+                not self.no_ref_symlinks):
             return True
-        elif path.startswith("/tags") and self._is_ref(path, self._tag_refs):
+        elif (path.startswith("/tags") and
+                self._is_ref(path, self._tag_refs) and
+                not self.no_ref_symlinks):
             return True
         return False
 
@@ -352,6 +454,19 @@ class RepoFS(Operations):
                 return ""
             else:
                 return path.split("/", self.git_start + 1)[self.git_start]
+        elif path.startswith("/branches/") and self.no_ref_symlinks:
+            if self._is_ref_prefix(path, self._branch_refs):
+                return ""
+            else:
+                ref_limit = self._get_branch_ref_limit(path, self._branch_refs)
+                return self._commit_from_ref("/".join(path.split("/")[2:ref_limit+1]))
+        elif path.startswith("/tags/") and self.no_ref_symlinks:
+            if self._is_ref_prefix(path, self._tag_refs):
+                return ""
+            else:
+                # /tags/tag1/
+                ref_limit = self._get_tag_ref_limit(path, self._tag_refs)
+                return self._commit_from_ref("/".join(path.split("/")[1:ref_limit+1]))
         else:
             raise FuseOSError(errno.ENOENT)
 
@@ -390,10 +505,49 @@ class RepoFS(Operations):
                 return self._git.is_dir(elements[self.git_start-1], "/".join(elements[self.git_start:]))
         elif elements in [['branches'], ['tags']]:
             return True
-        elif elements[0] == 'branches':
-            return self._is_ref_prefix(path, self._branch_refs)
+        elif elements[0] == 'branches' and len(elements) > 1:
+            if self._is_ref_prefix(path, self._branch_refs):
+                return True
+
+            if self.no_ref_symlinks:
+                prefix = "/".join(self._path_to_refs(path, self._branch_refs))
+                if elements[1] == "heads" or elements[1] == "remotes":
+                    ref_limit = self._get_branch_ref_limit(path, self._branch_refs)
+                else:
+                    return False
+
+                if len(elements) < ref_limit:
+                    return self._is_ref(path, self._branch_refs)
+                elif len(elements) > ref_limit and elements[ref_limit] in self._commit_metadata_folders():
+                    if len(elements[ref_limit:]) >= 2:
+                        return False
+                    return True
+                elif self._is_ref(path):
+                    return self._git.is_dir(self._commit_from_ref("/".join(elements[1:ref_limit])),
+                            "/".join(elements[ref_limit:]))
+                else:
+                    return False
+            return False
         elif elements[0] == 'tags':
-            return self._is_ref_prefix(path, self._tag_refs)
+            if self._is_ref_prefix(path, self._tag_refs):
+                return True
+            if self.no_ref_symlinks:
+                prefix = "/".join(self._path_to_refs(path, self._branch_refs))
+                ref_limit = self._get_tag_ref_limit(path, self._tag_refs)
+                # /tags/tagName
+                if len(elements) < ref_limit:
+                    return self._is_ref(path, self._branch_refs)
+                elif len(elements) > ref_limit and elements[ref_limit] in self._commit_metadata_folders():
+                    if len(elements[ref_limit:]) >= 2:
+                        return False
+                    return True
+                elif self._is_ref(path):
+                    return self._git.is_dir(self._commit_from_ref("/".join(elements[0:ref_limit])),
+                            "/".join(elements[ref_limit:]))
+                else:
+                    return False
+            else:
+                return self._is_ref_prefix(path, self._tag_refs)
         return False
 
     def _get_file_size(self, path):
@@ -449,9 +603,9 @@ class RepoFS(Operations):
         elif path.startswith("/commits-by-hash"):
             dirents.extend(list(self._get_commits_by_hash(path)))
         elif path.startswith('/branches'):
-            dirents.extend(self._get_refs(path, self._branch_refs))
+            dirents.extend(self._get_branches(path))
         elif path.startswith('/tags'):
-            dirents.extend(self._get_refs(path, self._tag_refs))
+            dirents.extend(self._get_tags(path))
         else:
             raise FuseOSError(errno.ENOENT)
 
@@ -484,6 +638,9 @@ class RepoFS(Operations):
     utimens=None
 
 
+class RepoFSError(Exception):
+    pass
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("repo", help="Git repository to be processed.")
@@ -493,6 +650,12 @@ def main():
         "--hash-trees",
         help="Store 256 entries (first two digits) at each level" \
             "of commits-by-hash for the first three levels.",
+        action="store_true",
+        default=False
+    )
+    parser.add_argument(
+        "--no-ref-symlinks",
+        help="Do not create symlinks for commits of refs.",
         action="store_true",
         default=False
     )
@@ -514,7 +677,7 @@ def main():
 
     sys.stderr.write("Examining repository.  Please wait..\n")
     start = datetime.datetime.now()
-    repo = RepoFS(os.path.abspath(args.repo), os.path.abspath(args.mount), args.hash_trees, args.nocache)
+    repo = RepoFS(os.path.abspath(args.repo), os.path.abspath(args.mount), args.hash_trees, args.no_ref_symlinks, args.nocache)
     end = datetime.datetime.now()
     sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
     sys.stderr.write("Repository %s is now visible at %s\n" % (args.repo,

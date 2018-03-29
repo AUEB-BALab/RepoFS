@@ -42,6 +42,7 @@ git checkout -b b20050701
 git checkout -b feature/a
 git checkout -b private/john/b
 git checkout -b private/john/c
+git checkout -b remotes/origin/master
 git checkout master
 
 ln -s file_a link_a
