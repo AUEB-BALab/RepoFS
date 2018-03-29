@@ -148,6 +148,11 @@ class RepoFSTestCase(TestCase):
         self.assertEqual(self.repofs_htree._git_path(
             '/commits-by-hash/aa/bb/cc/aabbcc...'), '')
 
+        self.assertEqual(self.repofs_nosym._git_path(
+            '/tags/tdir/tname/dir_a/dir_b'), 'dir_a/dir_b')
+        self.assertEqual(self.repofs_nosym._git_path(
+            '/branches/heads/feature/a/dir_a/dir_b'), 'dir_a/dir_b')
+
     def test_verify_commit_files(self):
         entries = self.repofs._get_commits_by_date(self.recent_commit)
         self.assertTrue(entries, 'file_a' in entries)
@@ -379,14 +384,14 @@ class RepoFSTestCase(TestCase):
 
     def test_get_branch_ref_limit(self):
         refs = self.repofs._branch_refs
-        self.assertEqual(self.repofs._get_branch_ref_limit("/branches", refs), 1)
-        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads", refs), 2)
-        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads/master", refs), 3)
-        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads/feature/a", refs), 4)
-        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/remotes/origin/master", refs), 4)
-        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads/remotes/origin/master", refs), 5)
-        self.assertEqual(self.repofs_nosym._get_branch_ref_limit("/branches/heads/master/dir_a/dir_b", refs), 3)
-        self.assertEqual(self.repofs_nosym._get_branch_ref_limit("/branches/heads/remotes/origin/master/dir_a/dir_b", refs), 5)
+        self.assertEqual(self.repofs._get_branch_ref_limit("/branches"), 1)
+        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads"), 2)
+        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads/master"), 3)
+        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads/feature/a"), 4)
+        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/remotes/origin/master"), 4)
+        self.assertEqual(self.repofs._get_branch_ref_limit("/branches/heads/remotes/origin/master"), 5)
+        self.assertEqual(self.repofs_nosym._get_branch_ref_limit("/branches/heads/master/dir_a/dir_b"), 3)
+        self.assertEqual(self.repofs_nosym._get_branch_ref_limit("/branches/heads/remotes/origin/master/dir_a/dir_b"), 5)
 
     def test_get_commit_content_by_ref(self):
         commit = self.repofs_nosym._commit_from_ref("heads/master")
