@@ -6,6 +6,7 @@ from os import mkdir
 
 from ref import RefHandler, BRANCH_REFS, TAG_REFS
 from repofs import RepoFS
+from fuse import FuseOSError
 
 class RefHandlerTest(TestCase):
     def setUp(self):
@@ -134,6 +135,52 @@ class RefHandlerTest(TestCase):
         self.assertEqual(self.generate("tags/t20091011ca", self.t_refs, True)._get_commit(), commit)
         self.assertEqual(self.generate("tags/tdir/tname", self.t_refs, True)._get_commit(), self.repofs_nosym._commit_from_ref("tags/tdir/tname"))
         self.assertEqual(self.generate("tags/tdir", self.t_refs, True)._get_commit(), "")
+
+    def test_file_contents(self):
+        self.assertEqual(self.generate("heads/master/file_a", self.br_refs, True).file_contents(),
+                self.repofs_nosym._git.file_contents(self.repofs_nosym._git.commit_of_ref("heads/master"), "file_a"))
+        self.assertEqual(self.generate("heads/master/dir_a/file_aa", self.br_refs, True).file_contents(),
+                self.repofs_nosym._git.file_contents(self.repofs_nosym._git.commit_of_ref("heads/master"), "dir_a/file_aa"))
+
+    def test_readdir(self):
+        # branches
+        self.assertTrue('heads' in self.generate("", self.br_refs, False).readdir())
+        with self.assertRaises(FuseOSError):
+            self.generate("branchpartfoo/bar", self.br_refs, False).readdir()
+        self.assertTrue('b20050701' in self.generate("heads", self.br_refs, False).readdir())
+        self.assertEqual(sum(1 for _ in self.generate("heads", self.br_refs, False).readdir()), 5)
+        self.assertEqual(sum(1 for _ in self.generate("heads/private", self.br_refs, False).readdir()), 1)
+        self.assertTrue('a' in self.generate("heads/feature", self.br_refs, False).readdir())
+        self.assertTrue('b' in self.generate("heads/private/john", self.br_refs, False).readdir())
+        self.assertTrue('c' in self.generate("heads/private/john", self.br_refs, False).readdir())
+        with self.assertRaises(FuseOSError):
+            self.generate("heads/feature/xyzzy", self.br_refs, False).readdir()
+
+        # no ref symlinks
+        with self.assertRaises(FuseOSError):
+            self.generate("branchpartfoo/bar", self.br_refs, True).readdir()
+        self.assertTrue('heads' in self.generate("", self.br_refs, True).readdir())
+        self.assertTrue('b20050701' in self.generate("heads", self.br_refs, True).readdir())
+        self.assertEqual(sum(1 for _ in self.generate("heads/feature/a/.git-parents", self.br_refs, True).readdir()), 1)
+
+        # tags
+        self.assertTrue('t20091011ca' in self.generate("tags", self.t_refs, False).readdir())
+        self.assertTrue('tdir' in self.generate("tags", self.t_refs, False).readdir())
+        with self.assertRaises(FuseOSError):
+            self.generate("tags/tagpartfoo/bar", self.t_refs, False).readdir()
+        self.assertEqual(sum(1 for _ in self.generate("tags", self.t_refs, False).readdir()), 7)
+        self.assertEqual(sum(1 for _ in self.generate("tags/tdir", self.t_refs, False).readdir()), 1)
+        self.assertTrue('tname' in self.generate("tags/tdir", self.t_refs, False).readdir())
+        with self.assertRaises(FuseOSError):
+            self.generate("tags/tdir/xyzzy", self.t_refs, False).readdir()
+
+        # no ref symlinks
+        self.assertTrue('t20091011ca' in self.generate("tags", self.t_refs, True).readdir())
+        self.assertTrue('tname' in self.generate("tags/tdir", self.t_refs, True).readdir())
+        self.assertEqual(sum(1 for _ in self.generate("tags", self.t_refs, True).readdir()), 7)
+        self.assertEqual(sum(1 for _ in self.generate("tags/tdir", self.t_refs, True).readdir()), 1)
+        with self.assertRaises(FuseOSError):
+            self.generate("tags/tdir/xyzzy", self.t_refs, True).readdir()
 
 if __name__ == "__main__":
     main()

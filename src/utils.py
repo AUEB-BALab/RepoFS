@@ -41,3 +41,6 @@ def is_metadata_dir(path):
     if len(elements) != 1 or elements[0] not in metadata_dirs:
         return False
     return True
+
+def metadata_names():
+    return metadata_dirs

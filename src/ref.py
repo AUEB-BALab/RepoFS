@@ -1,6 +1,8 @@
 import utils
+import errno
 
 from handler_base import HandlerBase
+from fuse import FuseOSError
 
 BRANCH_TYPE = "BRANCH"
 TAG_TYPE = "TAG"
@@ -22,6 +24,23 @@ class RefHandler(HandlerBase):
                 return True
         return False
 
+    def _get_refs(self):
+        """Return the ref elements that match the specified path and
+        refs, e.g. refs/heads or refs/tags. """
+        ref_prefix = []
+        if self.path_data['ref']:
+            ref_prefix = self.path_data['ref'].split("/")
+        result = set()
+        # Find common prefix
+        for ref in self.refs:
+            ref = ref.split('/')[1:]
+            if ref_prefix == ref[:len(ref_prefix)]:
+                # Common prefix found
+                if len(ref) > len(ref_prefix):
+                    result.add(ref[len(ref_prefix)])
+
+        return list(result)
+
     def _is_full_ref(self):
         """Return true if the specified path (e.g. branches/master, or
         tags/V1.0) refers to one of the specified refs, (e.g.
@@ -40,6 +59,21 @@ class RefHandler(HandlerBase):
 
     def _is_metadata_dir(self):
         return utils.is_metadata_dir(self.path_data['commit_path'])
+
+    def _get_metadata_names(self):
+        return utils.metadata_names()
+
+    def _get_metadata_dir(self):
+        commit = self._get_commit()
+        metaname = self.path_data['commit_path']
+        if metaname == '.git-parents':
+            return self.oper.commit_parents(commit)
+        elif metaname == '.git-descendants':
+            return self.oper.commit_descendants(commit)
+        elif metaname == '.git-names':
+            return self.oper.commit_names(commit)
+        else:
+            return []
 
     def _is_metadata_symlink(self):
         return utils.is_metadata_symlink(self.path_data['commit_path'], self.oper.all_commits())
@@ -64,3 +98,28 @@ class RefHandler(HandlerBase):
                 (self._is_full_ref() and not self.no_ref_symlinks)):
             return True
         return False
+
+    def file_contents(self):
+        commit = self._get_commit()
+        return self.oper.file_contents(commit, self.path_data['commit_path'])
+
+    def readdir(self):
+        if not self.path:
+            return self._get_refs()
+
+        if not self._is_ref_prefix() and not self._is_full_ref():
+            raise FuseOSError(errno.ENOENT)
+
+        if self._is_ref_prefix():
+            return self._get_refs()
+        elif self.no_ref_symlinks and self._is_full_ref():
+            if self._is_metadata_dir():
+                return self._get_metadata_dir()
+            else:
+                dirents = self.oper.directory_contents(self._get_commit(), self.path_data['commit_path'])
+                if not self.path_data['commit_path']:
+                    dirents += self._get_metadata_names()
+
+            return dirents
+        else:
+            raise FuseOSError(errno.ENOENT)
