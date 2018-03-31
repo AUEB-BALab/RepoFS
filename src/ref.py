@@ -57,27 +57,6 @@ class RefHandler(HandlerBase):
             return self.oper.commit_of_ref(self.path_data['ref'])
         return ""
 
-    def _is_metadata_dir(self):
-        return utils.is_metadata_dir(self.path_data['commit_path'])
-
-    def _get_metadata_names(self):
-        return utils.metadata_names()
-
-    def _get_metadata_dir(self):
-        commit = self._get_commit()
-        metaname = self.path_data['commit_path']
-        if metaname == '.git-parents':
-            return self.oper.commit_parents(commit)
-        elif metaname == '.git-descendants':
-            return self.oper.commit_descendants(commit)
-        elif metaname == '.git-names':
-            return self.oper.commit_names(commit)
-        else:
-            return []
-
-    def _is_metadata_symlink(self):
-        return utils.is_metadata_symlink(self.path_data['commit_path'], self.oper.all_commits())
-
     def is_dir(self):
         if not self.path_data['ref']:
             return True
@@ -114,7 +93,7 @@ class RefHandler(HandlerBase):
             return self._get_refs()
         elif self.no_ref_symlinks and self._is_full_ref():
             if self._is_metadata_dir():
-                return self._get_metadata_dir()
+                return self._get_metadata_dir(self._get_commit())
             else:
                 dirents = self.oper.directory_contents(self._get_commit(), self.path_data['commit_path'])
                 if not self.path_data['commit_path']:
