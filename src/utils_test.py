@@ -1,6 +1,7 @@
 from unittest import TestCase, main
 
-from utils import demux_ref_path, is_metadata_dir, is_metadata_symlink
+from utils import demux_ref_path, is_metadata_dir, is_metadata_symlink, \
+        demux_commits_by_hash_path
 from ref import BRANCH_REFS, TAG_REFS
 from gitoper import GitOperations
 
@@ -52,6 +53,56 @@ class UtilsTest(TestCase):
                 'type': "tags",
                 'ref': "tags/tdir/tname",
                 'commit_path': "dir_a/dir_b"
+            })
+
+    def test_demux_commits_by_hash_path(self):
+        # no hash trees
+        self.assertEqual(demux_commits_by_hash_path("", False), {
+                'commit': "",
+                'commit_path': "",
+                'htree_prefix': ""
+            })
+        self.assertEqual(demux_commits_by_hash_path("aabbcc...", False), {
+                'commit': "aabbcc...",
+                'commit_path': "",
+                'htree_prefix': ""
+            })
+        self.assertEqual(demux_commits_by_hash_path("aabbcc.../dir_a/file_a", False), {
+                'commit': "aabbcc...",
+                'commit_path': "dir_a/file_a",
+                'htree_prefix': ""
+            })
+
+        # hash trees
+        self.assertEqual(demux_commits_by_hash_path("aa", True), {
+                'commit': "",
+                'commit_path': "",
+                'htree_prefix': "aa"
+            })
+        self.assertEqual(demux_commits_by_hash_path("aa/bb", True), {
+                'commit': "",
+                'commit_path': "",
+                'htree_prefix': "aa/bb"
+            })
+        self.assertEqual(demux_commits_by_hash_path("aa/bb/cc", True), {
+                'commit': "",
+                'commit_path': "",
+                'htree_prefix': "aa/bb/cc"
+            })
+        self.assertEqual(demux_commits_by_hash_path("aaz/bbz/ccz", True), {
+                'commit': "",
+                'commit_path': "",
+                'htree_prefix': "aaz/bbz/ccz"
+            })
+        self.assertEqual(demux_commits_by_hash_path("aa/bb/cc/aabbcc...", True), {
+                'commit': "aabbcc...",
+                'commit_path': "",
+                'htree_prefix': "aa/bb/cc"
+            })
+        self.assertEqual(demux_commits_by_hash_path("aa/bb/cc/aabbcc.../dir_a/file_a", True), {
+                'commit': "aabbcc...",
+                'commit_path': "dir_a/file_a",
+                'htree_prefix': "aa/bb/cc"
             })
 
     def test_is_metadata_dir(self):

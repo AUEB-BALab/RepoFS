@@ -28,6 +28,26 @@ def demux_ref_path(path, refs):
         'commit_path': commit_path
     }
 
+def demux_commits_by_hash_path(path, hash_trees):
+    elements = path.split("/")
+    htree_prefix = ""
+    commit = ""
+    commit_path = ""
+
+    if hash_trees:
+        htree_prefix = "/".join(elements[:3])
+        elements = elements[3:]
+
+    if elements:
+        commit = elements[0]
+        commit_path = "/".join(elements[1:])
+
+    return {
+        'commit': commit,
+        'commit_path': commit_path,
+        'htree_prefix': htree_prefix
+    }
+
 def is_metadata_symlink(path, commits):
     elements = path.split("/")
     if (len(elements) != 2 or
