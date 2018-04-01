@@ -52,7 +52,7 @@ class RefHandler(HandlerBase):
                 return True
         return False
 
-    def _get_commit(self):
+    def get_commit(self):
         if self._is_full_ref():
             return self.oper.commit_of_ref(self.path_data['ref'])
         return ""
@@ -68,19 +68,22 @@ class RefHandler(HandlerBase):
                 return False
             if not self._is_full_ref():
                 return False
-            return self._is_metadata_dir() or self.oper.is_dir(self._get_commit(), self.path_data['commit_path'])
+            return self._is_metadata_dir() or self.oper.is_dir(self.get_commit(), self.path_data['commit_path'])
         return False
 
 
     def is_symlink(self):
-        if (self._is_metadata_symlink() or
+        if (self.is_metadata_symlink() or
                 (self._is_full_ref() and not self.no_ref_symlinks)):
             return True
         return False
 
     def file_contents(self):
-        commit = self._get_commit()
+        commit = self.get_commit()
         return self.oper.file_contents(commit, self.path_data['commit_path'])
+
+    def file_size(self):
+        return self.oper.file_size(self.get_commit(), self.path_data['commit_path'])
 
     def readdir(self):
         if not self.path:
@@ -93,9 +96,9 @@ class RefHandler(HandlerBase):
             return self._get_refs()
         elif self.no_ref_symlinks and self._is_full_ref():
             if self._is_metadata_dir():
-                return self._get_metadata_dir(self._get_commit())
+                return self._get_metadata_dir(self.get_commit())
             else:
-                dirents = self.oper.directory_contents(self._get_commit(), self.path_data['commit_path'])
+                dirents = self.oper.directory_contents(self.get_commit(), self.path_data['commit_path'])
                 if not self.path_data['commit_path']:
                     dirents += self._get_metadata_names()
 

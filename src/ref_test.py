@@ -19,7 +19,7 @@ class RefHandlerTest(TestCase):
             if e.errno != errno.EEXIST:
                 raise e
         self.repofs_nosym = RepoFS('test_repo', self.mount, False, True, True)
-        rcommit = self.repofs_nosym._get_commits_by_date('/commits-by-date/2009/10/11')[0]
+        rcommit = self.repofs_nosym._git.commits_by_date(2009, 10, 11)[0]
         self.recent_commit_by_hash = '/commits-by-hash/' + rcommit
 
     def generate(self, path, refs, no_ref_sym):
@@ -129,12 +129,12 @@ class RefHandlerTest(TestCase):
 
     def test_commit_from_path(self):
         commit = self.recent_commit_by_hash.split("/")[-1]
-        self.assertEqual(self.generate("heads/master", self.br_refs, True)._get_commit(), commit)
-        self.assertEqual(self.generate("heads/feature/a", self.br_refs, True)._get_commit(), self.repofs_nosym._commit_from_ref("heads/feature/a"))
-        self.assertEqual(self.generate("heads/feature", self.br_refs, True)._get_commit(), "")
-        self.assertEqual(self.generate("tags/t20091011ca", self.t_refs, True)._get_commit(), commit)
-        self.assertEqual(self.generate("tags/tdir/tname", self.t_refs, True)._get_commit(), self.repofs_nosym._commit_from_ref("tags/tdir/tname"))
-        self.assertEqual(self.generate("tags/tdir", self.t_refs, True)._get_commit(), "")
+        self.assertEqual(self.generate("heads/master", self.br_refs, True).get_commit(), commit)
+        self.assertEqual(self.generate("heads/feature/a", self.br_refs, True).get_commit(), self.repofs_nosym._git.commit_of_ref("heads/feature/a"))
+        self.assertEqual(self.generate("heads/feature", self.br_refs, True).get_commit(), "")
+        self.assertEqual(self.generate("tags/t20091011ca", self.t_refs, True).get_commit(), commit)
+        self.assertEqual(self.generate("tags/tdir/tname", self.t_refs, True).get_commit(), self.repofs_nosym._git.commit_of_ref("tags/tdir/tname"))
+        self.assertEqual(self.generate("tags/tdir", self.t_refs, True).get_commit(), "")
 
     def test_file_contents(self):
         self.assertEqual(self.generate("heads/master/file_a", self.br_refs, True).file_contents(),
