@@ -22,12 +22,11 @@ import os
 import sys
 
 from time import time
-from itertools import product
 from stat import S_IFDIR, S_IFREG, S_IFLNK, S_IWUSR
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
 from gitoper import GitOperations, GitOperError
-from ref import RefHandler, BRANCH_TYPE, TAG_TYPE
+from ref import RefHandler
 from commit_hash import CommitHashHandler
 from commit_date import CommitDateHandler
 
