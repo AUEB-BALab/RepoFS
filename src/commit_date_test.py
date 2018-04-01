@@ -113,6 +113,21 @@ class CommitDateHandlerTest(TestCase):
         self.generate("2005/6/1")._verify_date_path()
         self.generate("2005/1/31")._verify_date_path()
 
+    def test_get_symlink_target(self):
+        all_commits = list(self.repofs._git.all_commits())
+        last_commit = all_commits[0]
+        pre_last_commit = all_commits[1]
+
+        with self.assertRaises(FuseOSError):
+            self.generate("2005/6/7/commit").get_symlink_target()
+        with self.assertRaises(FuseOSError):
+            self.generate("2005/6").get_symlink_target()
+
+        recent_commit = '2009/10/11/' + last_commit
+        self.assertEqual(self.generate(recent_commit + "/.git-parents/" + pre_last_commit).get_symlink_target(), pre_last_commit)
+        link_commit = "2007/01/15/" + self.repofs._git.commits_by_date(2007, 01, 15)[0]
+        self.assertEqual(self.generate(link_commit + "/link_a").get_symlink_target(), link_commit + "/file_a")
+
 
 
 if __name__ == "__main__":
