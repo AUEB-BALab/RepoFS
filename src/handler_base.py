@@ -1,3 +1,6 @@
+import errno
+
+from fuse import FuseOSError
 import utils
 
 class HandlerBase:
@@ -30,7 +33,7 @@ class HandlerBase:
     def _is_metadata_dir(self):
         return utils.is_metadata_dir(self.path_data['commit_path'])
 
-    def _is_metadata_symlink(self):
+    def is_metadata_symlink(self):
         return utils.is_metadata_symlink(self.path_data['commit_path'], self.oper.all_commits())
 
     def _get_metadata_names(self):
@@ -39,3 +42,8 @@ class HandlerBase:
     def _is_metadata_symlink(self):
         return utils.is_metadata_symlink(self.path_data['commit_path'], self.oper.all_commits())
 
+    def _not_exists(self):
+        raise FuseOSError(errno.ENOENT)
+
+    def _dir_not_exists(self):
+        raise FuseOSError(errno.ENOTDIR)
