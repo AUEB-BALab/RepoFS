@@ -91,14 +91,14 @@ class RepoFS(Operations):
             return RefHandler(path[10:], self._git, self._branch_refs, self.no_ref_symlinks)
         elif path.startswith("/tags"):
             return RefHandler(path[1:], self._git, self._tag_refs, self.no_ref_symlinks)
-        else:
+        elif path != "/":
             raise FuseOSError(errno.ENOENT)
 
     def getattr(self, path, fh=None):
         uid, gid, pid = fuse_get_context()
         st = dict(st_uid=uid, st_gid=gid)
         handler = self._get_handler(path)
-        if handler.is_dir():
+        if path == "/" or handler.is_dir():
             st['st_mode'] = (S_IFDIR | self.mnt_mode)
             st['st_nlink'] = 2
         elif handler.is_symlink():
@@ -112,7 +112,10 @@ class RepoFS(Operations):
         t = time()
         st['st_atime'] = st['st_ctime'] = st['st_mtime'] = t
 
-        commit_time = self.get_commit_time(handler.get_commit())
+        commit_time = -1
+        if handler and handler.get_commit():
+            commit_time = self.get_commit_time(handler.get_commit())
+
         if commit_time != -1:
             st['st_ctime'] = st['st_mtime'] = commit_time
 

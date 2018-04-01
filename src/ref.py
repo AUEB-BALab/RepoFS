@@ -85,6 +85,9 @@ class RefHandler(HandlerBase):
     def file_size(self):
         return self.oper.file_size(self.get_commit(), self.path_data['commit_path'])
 
+    def get_symlink_target(self):
+        return self.get_commit()
+
     def readdir(self):
         if not self.path:
             return self._get_refs()
