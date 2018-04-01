@@ -1,7 +1,7 @@
 from unittest import TestCase, main
 
 from utils import demux_ref_path, is_metadata_dir, is_metadata_symlink, \
-        demux_commits_by_hash_path
+        demux_commits_by_hash_path, demux_commits_by_date_path
 from ref import BRANCH_REFS, TAG_REFS
 from gitoper import GitOperations
 
@@ -103,6 +103,38 @@ class UtilsTest(TestCase):
                 'commit': "aabbcc...",
                 'commit_path': "dir_a/file_a",
                 'htree_prefix': "aa/bb/cc"
+            })
+
+    def test_demux_commits_by_date_path(self):
+        self.assertEqual(demux_commits_by_date_path(""), {
+                'commit': "",
+                'commit_path': "",
+                'date_path': ""
+            })
+        self.assertEqual(demux_commits_by_date_path("2007"), {
+                'commit': "",
+                'commit_path': "",
+                'date_path': "2007"
+            })
+        self.assertEqual(demux_commits_by_date_path("2007/10"), {
+                'commit': "",
+                'commit_path': "",
+                'date_path': "2007/10"
+            })
+        self.assertEqual(demux_commits_by_date_path("2007/10/20"), {
+                'commit': "",
+                'commit_path': "",
+                'date_path': "2007/10/20"
+            })
+        self.assertEqual(demux_commits_by_date_path("2007/10/20/commit"), {
+                'commit': "commit",
+                'commit_path': "",
+                'date_path': "2007/10/20"
+            })
+        self.assertEqual(demux_commits_by_date_path("2007/10/20/commit/dir_a/file_a"), {
+                'commit': "commit",
+                'commit_path': "dir_a/file_a",
+                'date_path': "2007/10/20"
             })
 
     def test_is_metadata_dir(self):
