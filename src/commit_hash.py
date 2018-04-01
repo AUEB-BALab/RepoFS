@@ -1,7 +1,6 @@
+import os
 import utils
-import errno
 
-from fuse import FuseOSError
 from itertools import product
 
 from commit_handler import CommitHandler
@@ -23,30 +22,12 @@ class CommitHashHandler(CommitHandler):
             elements = self.path_data['htree_prefix'].split("/")
             for elem in elements:
                 if elem not in self._hex:
-                    raise FuseOSError(errno.ENOENT)
+                    self._not_exists()
 
     def _verify_commit(self):
         if (self.path_data['commit'] \
                 and self.path_data['commit'] not in self.oper.all_commits()):
-            raise FuseOSError(errno.ENOENT)
-
-    def _get_commit_content(self):
-        # root isn't a commit hash
-        if self.path_data['commit'] not in self.oper.all_commits():
-            raise FuseOSError(errno.ENOENT)
-
-        if self._is_metadata_dir():
-            return self._get_metadata_dir(self.path_data['commit'])
-
-        try:
-            dirents = self.oper.directory_contents(self.path_data['commit'], self.path_data['commit_path'])
-        except GitOperError:
-            raise FuseOSError(errno.ENOTDIR)
-
-        if not self.path_data['commit_path']:
-            dirents += self._get_metadata_names()
-
-        return dirents
+            self._not_exists()
 
     def is_dir(self):
         if not self.path:
@@ -66,12 +47,28 @@ class CommitHashHandler(CommitHandler):
     def is_symlink(self):
         if not self.path_data['commit_path'] or self._is_metadata_dir():
             return False
-        if self._is_metadata_symlink():
+        if self.is_metadata_symlink():
             return True
         return self.oper.is_symlink(self.path_data['commit'], self.path_data['commit_path'])
 
     def file_contents(self):
         return self.oper.file_contents(self.path_data['commit'], self.path_data['commit_path'])
+
+    def get_commit(self): #TODO TESTS
+        return self.path_data['commit']
+
+    def file_size(self):
+        return self.oper.file_size(self.get_commit(), self.path_data['commit_path'])
+
+    def get_symlink_target(self):
+        if not self.path_data['commit_path']:
+            self._not_exists()
+
+        if self.is_metadata_symlink():
+            return self.path_data['commit_path'].split("/")[-1]
+
+        target = self.oper.file_contents(self.path_data['commit'], self.path_data['commit_path'])
+        return os.path.join(self.path_data['htree_prefix'], self.path_data['commit'], target)
 
     def readdir(self):
         if self.hash_trees:
