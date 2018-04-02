@@ -13,4 +13,4 @@ before_script:
     - sudo ldconfig
     - python setup.py install
 script: 
-    - cd src && make test
+    - cd repofs && make test
