@@ -1,12 +1,12 @@
 import os
 import errno
-import utils
 
 from unittest import TestCase, main
 from fuse import FuseOSError
 
-from repofs import RepoFS
-from commit_date import CommitDateHandler
+from repofs.repofs import RepoFS
+from repofs import utils
+from repofs.commit_date import CommitDateHandler
 
 class CommitDateHandlerTest(TestCase):
     def setUp(self):

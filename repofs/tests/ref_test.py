@@ -2,11 +2,10 @@ import os
 import errno
 
 from unittest import TestCase, main
-from os import mkdir
-
-from ref import RefHandler, BRANCH_REFS, TAG_REFS
-from repofs import RepoFS
 from fuse import FuseOSError
+
+from repofs.ref import RefHandler, BRANCH_REFS, TAG_REFS
+from repofs.repofs import RepoFS
 
 class RefHandlerTest(TestCase):
     def setUp(self):
@@ -14,7 +13,7 @@ class RefHandlerTest(TestCase):
         self.t_refs = TAG_REFS
         self.mount = "mnt"
         try:
-            mkdir(self.mount)
+            os.mkdir(self.mount)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise e

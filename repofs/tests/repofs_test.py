@@ -21,10 +21,10 @@ from unittest import TestCase, main
 from os import mkdir, rmdir, errno, path
 from fuse import FuseOSError
 
-from repofs import RepoFS, RepoFSError
-from ref import RefHandler
-from commit_hash import CommitHashHandler
-from commit_date import CommitDateHandler
+from repofs.repofs import RepoFS, RepoFSError
+from repofs.ref import RefHandler
+from repofs.commit_hash import CommitHashHandler
+from repofs.commit_date import CommitDateHandler
 
 
 class RepoFSTestCase(TestCase):

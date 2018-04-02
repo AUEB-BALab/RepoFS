@@ -18,7 +18,7 @@
 import datetime
 
 from unittest import TestCase, main
-from gitoper import GitOperations, GitOperError
+from repofs.gitoper import GitOperations, GitOperError
 
 
 class GitOperationsTestCase(TestCase):
