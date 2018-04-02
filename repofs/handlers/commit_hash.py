@@ -1,9 +1,9 @@
 import os
-import utils
 
 from itertools import product
 
-from commit_handler import CommitHandler
+from repofs.handlers.commit_handler import CommitHandler
+from repofs import utils
 
 class CommitHashHandler(CommitHandler):
     def __init__(self, path, oper, hash_trees):

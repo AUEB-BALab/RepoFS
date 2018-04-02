@@ -1,8 +1,8 @@
 import os
 import datetime
-import utils
 
-from commit_handler import CommitHandler
+from repofs.handlers.commit_handler import CommitHandler
+from repofs import utils
 
 class CommitDateHandler(CommitHandler):
     def __init__(self, path, oper):

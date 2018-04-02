@@ -26,9 +26,9 @@ from stat import S_IFDIR, S_IFREG, S_IFLNK, S_IWUSR
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
 from gitoper import GitOperations, GitOperError
-from ref import RefHandler
-from commit_hash import CommitHashHandler
-from commit_date import CommitDateHandler
+from handlers.ref import RefHandler
+from handlers.commit_hash import CommitHashHandler
+from handlers.commit_date import CommitDateHandler
 
 
 class RepoFS(Operations):

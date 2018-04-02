@@ -1,7 +1,7 @@
 import errno
 
 from fuse import FuseOSError
-import utils
+from repofs import utils
 
 class HandlerBase:
     def __init__(self, *args, **kwargs):

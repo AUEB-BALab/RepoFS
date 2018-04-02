@@ -4,7 +4,7 @@ import errno
 from unittest import TestCase, main
 from fuse import FuseOSError
 
-from repofs.commit_hash import CommitHashHandler
+from repofs.handlers.commit_hash import CommitHashHandler
 from repofs.repofs import RepoFS
 from repofs import utils
 

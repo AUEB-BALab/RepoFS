@@ -4,7 +4,7 @@ import errno
 from unittest import TestCase, main
 from fuse import FuseOSError
 
-from repofs.ref import RefHandler, BRANCH_REFS, TAG_REFS
+from repofs.handlers.ref import RefHandler, BRANCH_REFS, TAG_REFS
 from repofs.repofs import RepoFS
 
 class RefHandlerTest(TestCase):

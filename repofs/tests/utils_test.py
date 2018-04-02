@@ -2,7 +2,7 @@ from unittest import TestCase, main
 
 from repofs.utils import demux_ref_path, is_metadata_dir, is_metadata_symlink, \
         demux_commits_by_hash_path, demux_commits_by_date_path
-from repofs.ref import BRANCH_REFS, TAG_REFS
+from repofs.handlers.ref import BRANCH_REFS, TAG_REFS
 from repofs.gitoper import GitOperations
 
 class UtilsTest(TestCase):

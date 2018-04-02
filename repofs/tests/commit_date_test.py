@@ -6,7 +6,7 @@ from fuse import FuseOSError
 
 from repofs.repofs import RepoFS
 from repofs import utils
-from repofs.commit_date import CommitDateHandler
+from repofs.handlers.commit_date import CommitDateHandler
 
 class CommitDateHandlerTest(TestCase):
     def setUp(self):

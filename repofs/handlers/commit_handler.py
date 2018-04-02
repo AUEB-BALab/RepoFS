@@ -1,5 +1,5 @@
-from handler_base import HandlerBase
-from gitoper import GitOperError
+from repofs.handlers.handler_base import HandlerBase
+from repofs.gitoper import GitOperError
 
 class CommitHandler(HandlerBase):
     def _get_commit_content(self):

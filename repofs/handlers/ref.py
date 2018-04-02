@@ -1,7 +1,7 @@
-import utils
 import errno
 
-from handler_base import HandlerBase
+from repofs.handlers.handler_base import HandlerBase
+from repofs import utils
 from fuse import FuseOSError
 
 BRANCH_TYPE = "BRANCH"

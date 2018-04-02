@@ -1,6 +1,6 @@
 from unittest import TestCase, main
 
-from repofs.handler_base import HandlerBase
+from repofs.handlers.handler_base import HandlerBase
 
 class HandlerBaseTest(TestCase):
     def setUp(self):

@@ -22,9 +22,9 @@ from os import mkdir, rmdir, errno, path
 from fuse import FuseOSError
 
 from repofs.repofs import RepoFS, RepoFSError
-from repofs.ref import RefHandler
-from repofs.commit_hash import CommitHashHandler
-from repofs.commit_date import CommitDateHandler
+from repofs.handlers.ref import RefHandler
+from repofs.handlers.commit_hash import CommitHashHandler
+from repofs.handlers.commit_date import CommitDateHandler
 
 
 class RepoFSTestCase(TestCase):
