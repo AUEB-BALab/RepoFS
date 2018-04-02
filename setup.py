@@ -20,11 +20,11 @@ def setup_package():
         long_description=get_long_desc(),
         url='https://github.com/AUEB-BALab/RepoFS',
         license='Apache Software License',
-        packages=["repofs", "repofs/handlers"],
+        packages=find_packages(),
         install_requires=['fusepy', 'pygit2'],
         entry_points = {
             'console_scripts': [
-                'repofs=repofs.repofs:main',
+                'repofs=main:main',
             ],
         },
     )
