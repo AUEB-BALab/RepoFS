@@ -111,7 +111,7 @@ class RepoFS(Operations):
         st['st_atime'] = st['st_ctime'] = st['st_mtime'] = t
 
         commit_time = -1
-        if handler and handler.get_commit():
+        if handler and hasattr(handler, "get_commit") and handler.get_commit():
             commit_time = self.get_commit_time(handler.get_commit())
 
         if commit_time != -1:
