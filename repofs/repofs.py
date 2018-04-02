@@ -29,6 +29,7 @@ from gitoper import GitOperations, GitOperError
 from handlers.ref import RefHandler
 from handlers.commit_hash import CommitHashHandler
 from handlers.commit_date import CommitDateHandler
+from handlers.root import RootHandler
 
 
 class RepoFS(Operations):
@@ -44,9 +45,6 @@ class RepoFS(Operations):
         self._git = GitOperations(repo, not nocache, "giterr.log")
         self._branch_refs = ['refs/heads/', 'refs/remotes/']
         self._tag_refs = ['refs/tags']
-
-    def _get_root(self):
-        return ['commits-by-date', 'commits-by-hash', 'branches', 'tags']
 
     def _hash_updir(self, c):
         if not self.hash_trees:
@@ -82,7 +80,9 @@ class RepoFS(Operations):
         return self._git.get_commit_time(commit)
 
     def _get_handler(self, path):
-        if path.startswith("/commits-by-hash"):
+        if path == "/":
+            return RootHandler()
+        elif path.startswith("/commits-by-hash"):
             return CommitHashHandler(path[17:], self._git, self.hash_trees)
         elif path.startswith("/commits-by-date"):
             return CommitDateHandler(path[17:], self._git)
@@ -90,20 +90,20 @@ class RepoFS(Operations):
             return RefHandler(path[10:], self._git, self._branch_refs, self.no_ref_symlinks)
         elif path.startswith("/tags"):
             return RefHandler(path[1:], self._git, self._tag_refs, self.no_ref_symlinks)
-        elif path != "/":
+        else:
             raise FuseOSError(errno.ENOENT)
 
     def getattr(self, path, fh=None):
         uid, gid, pid = fuse_get_context()
         st = dict(st_uid=uid, st_gid=gid)
         handler = self._get_handler(path)
-        if path == "/" or handler.is_dir():
+        if handler.is_dir():
             st['st_mode'] = (S_IFDIR | self.mnt_mode)
             st['st_nlink'] = 2
         elif handler.is_symlink():
             st['st_mode'] = (S_IFLNK | self.mnt_mode)
             st['st_nlink'] = 1
-            st['st_size'] = len(self._target_from_symlink(path)) # TODO update _target_from_symlink
+            st['st_size'] = len(self._target_from_symlink(path))
         else:
             st['st_mode'] = (S_IFREG | self.mnt_mode)
             st['st_size'] = handler.file_size()
@@ -122,11 +122,8 @@ class RepoFS(Operations):
 
     def readdir(self, path, fh):
         dirents = ['.', '..']
-        if path == "/":
-            dirents.extend(self._get_root())
-        else:
-            handler = self._get_handler(path)
-            dirents.extend(handler.readdir())
+        handler = self._get_handler(path)
+        dirents.extend(handler.readdir())
 
         for r in dirents:
             yield r
