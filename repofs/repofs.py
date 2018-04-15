@@ -105,7 +105,10 @@ class RepoFS(Operations):
             st['st_size'] = len(self._target_from_symlink(path))
         else:
             st['st_mode'] = (S_IFREG | self.mnt_mode)
-            st['st_size'] = handler.file_size()
+            try:
+                st['st_size'] = handler.file_size()
+            except GitOperError:
+                raise FuseOSError(errno.ENOENT)
 
         t = time()
         st['st_atime'] = st['st_ctime'] = st['st_mtime'] = t
@@ -138,7 +141,6 @@ class RepoFS(Operations):
         return contents[offset:offset + size]
 
     def readlink(self, path):
-        #handler = self._get_handler(path)
         return self._target_from_symlink(path)
 
 
