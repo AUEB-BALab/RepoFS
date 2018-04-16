@@ -293,5 +293,11 @@ class GitOperations(object):
         self._sizes[commit][path] = size
         return size
 
+    def author(self, commit):
+        return self._get_entry(commit).author.name
+
+    def author_email(self, commit):
+        return self._get_entry(commit).author.email
+
 class GitOperError(Exception):
     pass

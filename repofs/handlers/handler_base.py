@@ -47,8 +47,23 @@ class HandlerBase:
         else:
             return []
 
+    def _get_metadata_file(self, commit):
+        metaname = self.path_data['commit_path']
+        if metaname == ".author":
+            return self.oper.author(commit)
+        elif metaname == ".author-email":
+            return self.oper.author_email(commit)
+        else:
+            self._not_exists()
+
     def _is_metadata_dir(self):
         return utils.is_metadata_dir(self.path_data['commit_path'])
+
+    def _is_metadata_file(self):
+        return utils.is_metadata_file(self.path_data['commit_path'])
+
+    def _is_metadata_name(self):
+        return self._is_metadata_dir() or self._is_metadata_file()
 
     def is_metadata_symlink(self):
         return utils.is_metadata_symlink(self.path_data['commit_path'], self.oper.all_commits())

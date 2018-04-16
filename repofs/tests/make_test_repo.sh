@@ -9,7 +9,7 @@ date_commit()
 {
   local d="$1T12:00:00"
   shift
-  GIT_COMMITTER_DATE="$d" GIT_AUTHOR_DATE="$d" git commit "$@"
+  GIT_AUTHOR_NAME="repofs" GIT_AUTHOR_EMAIL="repofs@repofs.com" GIT_COMMITTER_DATE="$d" GIT_AUTHOR_DATE="$d" git commit "$@"
 }
 
 touch file_a file_b file_c file_d

@@ -18,7 +18,7 @@
 from unittest import TestCase, main
 
 from repofs.utils import demux_ref_path, is_metadata_dir, is_metadata_symlink, \
-        demux_commits_by_hash_path, demux_commits_by_date_path
+        demux_commits_by_hash_path, demux_commits_by_date_path, metadata_names
 from repofs.handlers.ref import BRANCH_REFS, TAG_REFS
 from repofs.gitoper import GitOperations
 
@@ -157,6 +157,10 @@ class UtilsTest(TestCase):
     def test_is_metadata_dir(self):
         self.assertTrue(is_metadata_dir(".git-parents"))
         self.assertFalse(is_metadata_dir(".git-parents2"))
+
+    def test_metadata_names(self):
+        self.assertEqual(metadata_names(),
+                    [".git-parents", ".git-descendants", ".git-names", ".author", ".author-email"])
 
     def test_is_metadata_symlink(self):
         self.assertTrue(is_metadata_symlink(".git-parents/commit", ["commit"]))

@@ -90,19 +90,25 @@ class CommitDateHandler(CommitHandler):
         return self.oper.is_dir(self.path_data['commit'], self.path_data['commit_path'])
 
     def is_symlink(self):
-        if not self.path_data['commit_path'] or self._is_metadata_dir():
+        if not self.path_data['commit_path'] or self._is_metadata_name():
             return False
         if self.is_metadata_symlink():
             return True
         return self.oper.is_symlink(self.path_data['commit'], self.path_data['commit_path'])
 
     def file_contents(self):
+        if self._is_metadata_file():
+            return self._get_metadata_file(self.path_data['commit_path'])
+
         return self.oper.file_contents(self.path_data['commit'], self.path_data['commit_path'])
 
     def get_commit(self):
         return self.path_data['commit']
 
     def file_size(self):
+        if self._is_metadata_file():
+            return len(self._get_metadata_file(self.path_data['commit']))
+
         return self.oper.file_size(self.get_commit(), self.path_data['commit_path'])
 
     def get_symlink_target(self):

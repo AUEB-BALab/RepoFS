@@ -109,6 +109,12 @@ class GitOperationsTestCase(TestCase):
         self.assertTrue(self.go.is_symlink(commit, "link_a"))
         self.assertFalse(self.go.is_symlink(commit, "file_a"))
 
+    def test_author(self):
+        commit = self.go.commit_of_ref("refs/tags/t20070115la").split("/")[-1]
+        self.assertEqual(self.go.author(commit), "repofs")
+        self.assertEqual(self.go.author_email(commit), "repofs@repofs.com")
+        pass
+
 
 if __name__ == "__main__":
     main()

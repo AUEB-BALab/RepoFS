@@ -97,9 +97,15 @@ class RefHandler(HandlerBase):
 
     def file_contents(self):
         commit = self.get_commit()
+        if self._is_metadata_file():
+            return self._get_metadata_file(self.path_data['commit'])
+
         return self.oper.file_contents(commit, self.path_data['commit_path'])
 
     def file_size(self):
+        if self._is_metadata_file():
+            return len(self._get_metadata_file(self.path_data['commit']))
+
         return self.oper.file_size(self.get_commit(), self.path_data['commit_path'])
 
     def get_symlink_target(self):

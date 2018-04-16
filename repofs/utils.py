@@ -16,6 +16,7 @@
 #
 
 metadata_dirs = ['.git-parents', '.git-descendants', '.git-names']
+metadata_files = ['.author', '.author-email']
 
 def get_full_ref(path, refs):
     elements = path.split("/")
@@ -97,5 +98,11 @@ def is_metadata_dir(path):
         return False
     return True
 
+def is_metadata_file(path):
+    elements = path.split("/")
+    if len(elements) != 1 or elements[0] not in metadata_files:
+        return False
+    return True
+
 def metadata_names():
-    return metadata_dirs
+    return metadata_dirs + metadata_files
