@@ -48,10 +48,12 @@ class RefHandlerTest(TestCase):
         self.assertTrue(hasattr(handler, "oper"))
         self.assertTrue(hasattr(handler, "refs"))
         self.assertTrue(hasattr(handler, "no_ref_symlinks"))
+        self.assertTrue(hasattr(handler, "types"))
         self.assertEqual(handler.path, "heads/master")
         self.assertEqual(handler.oper, self.repofs_nosym._git)
         self.assertEqual(handler.refs, self.repofs_nosym._git.refs(self.br_refs))
         self.assertEqual(handler.no_ref_symlinks, False)
+        self.assertEqual(handler.types, ['tags', 'heads', 'remotes'])
 
         handler = self.generate("t20091011ca", self.t_refs, False)
         self.assertEqual(handler.path, "t20091011ca")
@@ -77,6 +79,7 @@ class RefHandlerTest(TestCase):
 
         # tags
         self.assertTrue(self.generate("", self.t_refs, False).is_dir())
+        self.assertTrue(self.generate("tags", self.t_refs, False).is_dir())
         self.assertTrue(self.generate("tags/tdir", self.t_refs, False).is_dir())
         self.assertFalse(self.generate("tags/tdir/tname", self.t_refs, False).is_dir())
 

@@ -32,6 +32,7 @@ class RefHandler(HandlerBase):
         self.no_ref_symlinks = no_ref_symlinks
         self.refs = self.oper.refs(refs)
         self.path_data = utils.demux_ref_path(path, self.refs)
+        self.types = ['tags', 'heads', 'remotes']
 
     def _is_ref_prefix(self):
         elements = self.path_data['ref'].split("/")
@@ -75,13 +76,13 @@ class RefHandler(HandlerBase):
         return ""
 
     def is_dir(self):
-        if not self.path_data['ref']:
+        if not self.path_data['ref'] or self.path_data['ref'] in self.types:
             return True
 
         if self._is_ref_prefix():
             return True
         if self.no_ref_symlinks:
-            if self.path_data['type'] not in ['tags', 'heads', 'remotes']:
+            if self.path_data['type'] not in self.types:
                 return False
             if not self._is_full_ref():
                 return False
