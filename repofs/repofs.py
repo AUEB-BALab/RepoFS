@@ -96,19 +96,19 @@ class RepoFS(Operations):
         uid, gid, pid = fuse_get_context()
         st = dict(st_uid=uid, st_gid=gid)
         handler = self._get_handler(path)
-        if handler.is_dir():
-            st['st_mode'] = (S_IFDIR | self.mnt_mode)
-            st['st_nlink'] = 2
-        elif handler.is_symlink():
-            st['st_mode'] = (S_IFLNK | self.mnt_mode)
-            st['st_nlink'] = 1
-            st['st_size'] = len(self._target_from_symlink(path))
-        else:
-            st['st_mode'] = (S_IFREG | self.mnt_mode)
-            try:
+        try:
+            if handler.is_dir():
+                st['st_mode'] = (S_IFDIR | self.mnt_mode)
+                st['st_nlink'] = 2
+            elif handler.is_symlink():
+                st['st_mode'] = (S_IFLNK | self.mnt_mode)
+                st['st_nlink'] = 1
+                st['st_size'] = len(self._target_from_symlink(path))
+            else:
+                st['st_mode'] = (S_IFREG | self.mnt_mode)
                 st['st_size'] = handler.file_size()
-            except GitOperError:
-                raise FuseOSError(errno.ENOENT)
+        except GitOperError:
+            raise FuseOSError(errno.ENOENT)
 
         t = time()
         st['st_atime'] = st['st_ctime'] = st['st_mtime'] = t
