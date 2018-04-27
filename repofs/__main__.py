@@ -64,7 +64,7 @@ def main():
     sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
     sys.stderr.write("Repository %s is now visible at %s\n" % (args.repo,
                                                                args.mount))
-    FUSE(repo, args.mount, nothreads=True, foreground=foreground)
+    FUSE(repo, os.path.abspath(args.mount), nothreads=True, foreground=foreground)
 
 if __name__ == '__main__':
     main()
