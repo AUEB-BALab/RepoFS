@@ -3,9 +3,9 @@ python: "2.7"
 sudo: true
 before_script:
     - sudo apt-get install python-fuse python-pip python-dev libffi-dev libgit2-dev cmake -y
-    - wget https://github.com/libgit2/libgit2/archive/v0.27.0.tar.gz
-    - tar xzf v0.27.0.tar.gz
-    - cd libgit2-0.27.0/
+    - wget https://github.com/libgit2/libgit2/archive/v0.24.3.tar.gz
+    - tar xzf v0.24.3.tar.gz
+    - cd libgit2-0.24.3/
     - cmake .
     - make
     - sudo make install
