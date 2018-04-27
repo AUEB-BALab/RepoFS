@@ -21,7 +21,7 @@ import argparse
 import datetime
 from fuse import FUSE
 
-from repofs.repofs import RepoFS
+from repofs import RepoFS
 
 def main():
     parser = argparse.ArgumentParser()
