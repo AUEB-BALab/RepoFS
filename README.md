@@ -7,23 +7,18 @@ Filesystem view of version control repositories
 Installation
 =======================
 
-OSX
----
-1. Install the [latest release of
-   OSXFUSE](https://github.com/osxfuse/osxfuse/releases)
-2. `brew install libgit2`
-3. `python setup.py install`
+We currently support only Debian based distributions.
 
 Debian Based Distribution (\>= 9.3)
 --------------------------------
-1. `apt-get install python-pygit2 python-fuse`
-2. `python setup.py install`
+1. `apt-get install libffi-dev libgit2-dev fuse`
+2. `pip install repofs`
 
 Older Debian Distributions (\< 9.3)
 ---------------------------------
 1. `apt-get install python-fuse`
 2. Build libgit2 from [source](https://github.com/libgit2/libgit2#quick-start)
-3. `python setup.py install`
+3. `pip install repofs`
 
 Regarding issues arrising from the installation of `pygit2`,
 follow the instructions on [this page](http://www.pygit2.org/install.html).
