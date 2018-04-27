@@ -21,7 +21,7 @@ def setup_package():
         url='https://github.com/AUEB-BALab/RepoFS',
         license='Apache Software License',
         packages=find_packages(),
-        data_files=[('', ['main.py'])],
+        data_files=[('man/man1', ['repofs.1']), ('', ['main.py'])],
         install_requires=['fusepy', 'pygit2'],
         entry_points = {
             'console_scripts': [

@@ -1,0 +1,68 @@
+.TH repofs 1 "27 April 2018" "version 0.2"
+.SH NAME
+repofs - file system view of Git repositories
+.SH SYNOPSIS
+.B repofs [--hash-trees] [--no-ref-symlinks]
+.I repo mountpoint
+.SH DESCRIPTION
+The repofs utility creates a virtual file system of a Git repository.
+It takes as parameters a path to a Git repository and a directory which
+will act as the mounting point for the virtual file system.
+After repofs succesfully creates the virtual file system,
+the mount point will contain four directories:
+.IP commits-by-hash
+A directory listing all the hashes of the repository as directories,
+which when visited contain the directory structure of that specific commit.
+These commit hash directories contain a hidden directory
+.I .git-parents
+which contains symbolic links to the commit's parents'
+commit hash directories, and two hidden files
+.I .author
+and
+.I .author-email
+which contain the name and email of the author of the commit respectivelly.
+.IP commits-by-date
+A directory listing all the years between the repository's first and
+last commit.
+Each of those year directories contains one directory for each month,
+which contains a directory for each day of that month.
+The directory
+.I commits-by-date/yyyy/mm/dd
+contains all the commit hashes of the commits made on that date as directories,
+which when visited act exactly as the directories under commits-by-hash.
+.IP tags
+A directory listing all the tags of the repository as symbolic links
+to the commit hash directories under commits-by-hash,
+which correspond to the commits that the tags point to.
+.IP branches
+A directory that contains the
+.I heads
+and
+.I remotes
+directories.
+The heads directory contains all the local branch names of the repository
+as symbolic links to the commits that the branches correspond to under
+the commits-by-hash directory.
+The remotes directory contains the remote names of the repository
+as directories, which contain all the remote branch names of the
+repository acting exactly like the branch names of the heads directory.
+.SH OPTIONS
+.IP --hash-trees
+List the contents of the
+.I commits-by-hash
+directory as a tree structure. With this option,
+the commits-by-hash directory will contain 256 directories each named
+after the hexadecimal values in the range 00..ff, for three levels.
+So, for example, the directory
+.I commits-by-hash/08/f2/ec/
+will contain all the commit hash directories whose name starts with 08f2ec.
+.IP --no-ref-symlinks
+List the contents of the
+.I branches
+and
+.I tags
+directories as directories acting like commit hash directories instead of symbolic links.
+.SH AUTHORS
+Vitalis Salis - vitsalis@gmail.com
+
+Diomidis Spinellis - dds@aueb.gr
