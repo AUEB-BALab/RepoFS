@@ -26,4 +26,7 @@ follow the instructions on [this page](http://www.pygit2.org/install.html).
 Usage
 =====
 
-`repofs <git_repo> <mount_dir>`
+`repofs [--no-ref-symlinks] [--hash-trees] <git_repo> <mount_dir>`
+
+Run `man repofs` after installation, for a detailed explanation of RepoFS'
+usage.
