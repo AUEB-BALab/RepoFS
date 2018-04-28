@@ -32,16 +32,15 @@ from handlers.root import RootHandler
 
 
 class RepoFS(Operations):
-    def __init__(self, repo, mount, hash_trees, no_ref_symlinks, nocache):
+    def __init__(self, repo, mount, hash_trees, no_ref_symlinks):
         self.repo = repo
         self.repo_mode = os.stat(repo).st_mode
         self.no_ref_symlinks = no_ref_symlinks
         # remove write permission and directory flag
         self.mnt_mode = self.repo_mode & ~S_IWUSR & ~S_IFDIR
         self.mount = mount
-        self.nocache = nocache
         self.hash_trees = hash_trees
-        self._git = GitOperations(repo, not nocache, "giterr.log")
+        self._git = GitOperations(repo)
         self._branch_refs = ['refs/heads/', 'refs/remotes/']
         self._tag_refs = ['refs/tags']
 

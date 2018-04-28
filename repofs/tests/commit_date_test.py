@@ -33,7 +33,7 @@ class CommitDateHandlerTest(TestCase):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise e
-        self.repofs = RepoFS('test_repo', self.mount, True, False, False)
+        self.repofs = RepoFS('test_repo', self.mount, True, False)
 
     def generate(self, path):
         oper = self.repofs._git

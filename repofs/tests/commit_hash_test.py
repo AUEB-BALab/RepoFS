@@ -34,7 +34,7 @@ class CommitHashHandlerTest(TestCase):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise e
-        self.repofs_htree = RepoFS('test_repo', self.mount, True, False, True)
+        self.repofs_htree = RepoFS('test_repo', self.mount, True, False)
 
     def generate(self, path, hash_trees):
         oper = self.repofs_htree._git

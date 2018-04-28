@@ -26,13 +26,11 @@ from pygit2 import Repository, Commit, GIT_OBJ_TREE, GIT_FILEMODE_LINK
 
 
 class GitOperations(object):
-    def __init__(self, repo, caching, errpath="giterr.log"):
+    def __init__(self, repo):
         self.repo = repo
         self._gitrepo = os.path.join(repo, '.git')
         self._pygit = Repository(repo)
-        self._errfile = open(errpath, "w+", 0)
         self._commands = {}
-        self._caching = caching
         self._trees = {}
         self._trees_filled = {}
         self._sizes = {}
@@ -57,7 +55,7 @@ class GitOperations(object):
         else:
             try:
                 # print(command)
-                out = check_output(list, stderr=self._errfile)
+                out = check_output(list)
                 if return_exit_code:
                     out = True
             except CalledProcessError as e:
@@ -68,10 +66,8 @@ class GitOperations(object):
                 else:
                     message = "Error calling %s: %s" % (command, str(e))
                     sys.stderr.write(message)
-                    self._errfile.write(message)
                     out = None
-            if self._caching:
-                self._commands[command] = out
+            self._commands[command] = out
             return out
 
     def _get_entry(self, commit, path=None, return_tree=False):

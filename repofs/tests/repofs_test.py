@@ -39,9 +39,9 @@ class RepoFSTestCase(TestCase):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise e
-        self.repofs = RepoFS('test_repo', self.mount, False, False, True)
-        self.repofs_htree = RepoFS('test_repo', self.mount2, True, False, True)
-        self.repofs_nosym = RepoFS('test_repo', self.mount3, False, True, True)
+        self.repofs = RepoFS('test_repo', self.mount, False, False)
+        self.repofs_htree = RepoFS('test_repo', self.mount2, True, False)
+        self.repofs_nosym = RepoFS('test_repo', self.mount3, False, True)
         self.first_commit = '/commits-by-date/2005/6/7/' + self.repofs._git.commits_by_date(2005, 6, 7)[0]
         self.second_commit = '/commits-by-date/2005/6/10/' + self.repofs._git.commits_by_date(2005, 6, 10)[0]
         self.recent_commit = '/commits-by-date/2009/10/11/' + self.repofs._git.commits_by_date(2009, 10, 11)[0]

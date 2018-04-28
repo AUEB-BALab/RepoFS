@@ -23,7 +23,7 @@ from repofs.gitoper import GitOperations, GitOperError
 
 class GitOperationsTestCase(TestCase):
     def setUp(self):
-        self.go = GitOperations('test_repo', True)
+        self.go = GitOperations('test_repo')
         self.master_hash = self.go.commit_of_ref("master").split("/")[-1]
 
     def test_cached_command(self):

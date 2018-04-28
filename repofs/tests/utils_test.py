@@ -24,7 +24,7 @@ from repofs.gitoper import GitOperations
 
 class UtilsTest(TestCase):
     def setUp(self):
-        self.gitoper = GitOperations("test_repo", True)
+        self.gitoper = GitOperations("test_repo")
 
     def test_demux_ref_path(self):
         branch_refs = self.gitoper.refs(BRANCH_REFS)
