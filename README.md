@@ -7,21 +7,10 @@ Filesystem view of version control repositories
 Installation
 =======================
 
-We currently support only Debian based distributions.
+We currently support only Debian based distributions \>= 9.3.
 
-Debian Based Distribution (\>= 9.3)
---------------------------------
-1. `apt-get install libffi-dev libgit2-dev fuse`
+1. `apt-get install libffi-dev libgit2-dev fuse python-pip`
 2. `pip install repofs`
-
-Older Debian Distributions (\< 9.3)
----------------------------------
-1. `apt-get install python-fuse`
-2. Build libgit2 from [source](https://github.com/libgit2/libgit2#quick-start)
-3. `pip install repofs`
-
-Regarding issues arrising from the installation of `pygit2`,
-follow the instructions on [this page](http://www.pygit2.org/install.html).
 
 Usage
 =====
@@ -30,3 +19,5 @@ Usage
 
 Run `man repofs` after installation, for a detailed explanation of RepoFS'
 usage.
+
+To unmount a Git repository from a specific mount point run `umount <mount_dir>`.
