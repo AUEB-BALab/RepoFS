@@ -49,8 +49,8 @@ class CommitDateHandler(CommitHandler):
         return range(1, self._days_per_month(year)[month - 1] + 1)
 
     def _string_list(self, l):
-        """ Return list l as a list of strings """
-        return [str(x) for x in l]
+        """ Return list l as a list of double digit strings """
+        return ["%02d" % x for x in l]
 
     def _verify_date_path(self):
         """ Raise an exception if the elements array representing a commit
