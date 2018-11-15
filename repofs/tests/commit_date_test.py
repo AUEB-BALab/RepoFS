@@ -69,8 +69,8 @@ class CommitDateHandlerTest(TestCase):
         recent_commit = '2009/10/11/' + last_commit
         self.assertFalse(self.generate("").is_symlink())
         self.assertFalse(self.generate("2007").is_symlink())
-        self.assertFalse(self.generate("2007/1").is_symlink())
-        self.assertFalse(self.generate("2007/1/15").is_symlink())
+        self.assertFalse(self.generate("2007/01").is_symlink())
+        self.assertFalse(self.generate("2007/01/15").is_symlink())
         self.assertFalse(self.generate("2007/1/15/").is_symlink())
         self.assertFalse(self.generate(recent_commit).is_symlink())
         self.assertFalse(self.generate(recent_commit + "/.git-parents").is_symlink())
@@ -90,10 +90,10 @@ class CommitDateHandlerTest(TestCase):
 
         self.assertEqual(len(self.generate("").readdir()), 5)
         self.assertEqual(len(self.generate("2005").readdir()), 12)
-        self.assertEqual(len(self.generate("2005/6").readdir()), 30)
-        self.assertEqual(len(list(self.generate("2005/6/7").readdir())), 1)
-        self.assertEqual(len(list(self.generate("2005/6/6").readdir())), 0)
-        self.assertEqual(len(list(self.generate("2005/6/8").readdir())), 0)
+        self.assertEqual(len(self.generate("2005/06").readdir()), 30)
+        self.assertEqual(len(list(self.generate("2005/06/7").readdir())), 1)
+        self.assertEqual(len(list(self.generate("2005/06/06").readdir())), 0)
+        self.assertEqual(len(list(self.generate("2005/6/08").readdir())), 0)
         self.assertEqual(len(list(self.generate("2005/6/29").readdir())), 0)
         self.assertEqual(len(list(self.generate("2005/6/30").readdir())), 1)
         self.assertEqual(len(list(self.generate("2005/7/1").readdir())), 2)
@@ -115,20 +115,22 @@ class CommitDateHandlerTest(TestCase):
         with self.assertRaises(FuseOSError):
             self.generate("2001/2/3")._verify_date_path()
         with self.assertRaises(FuseOSError):
-            self.generate("2005/6/32")._verify_date_path()
+            self.generate("2005/06/32")._verify_date_path()
         with self.assertRaises(FuseOSError):
-            self.generate("2004/2/0")._verify_date_path()
+            self.generate("2004/02/0")._verify_date_path()
         with self.assertRaises(FuseOSError):
-            self.generate("2004/4/2")._verify_date_path()
+            self.generate("2004/04/2")._verify_date_path()
         with self.assertRaises(FuseOSError):
-            self.generate("2004/1/32")._verify_date_path()
+            self.generate("2004/01/32")._verify_date_path()
         with self.assertRaises(FuseOSError):
             self.generate("2004/0/30")._verify_date_path()
+        with self.assertRaises(FuseOSError):
+            self.generate("2004/00/30")._verify_date_path()
         self.generate("2005")._verify_date_path()
         self.generate("2005/6")._verify_date_path()
-        self.generate("2005/6/7")._verify_date_path()
-        self.generate("2005/6/1")._verify_date_path()
-        self.generate("2005/1/31")._verify_date_path()
+        self.generate("2005/06/7")._verify_date_path()
+        self.generate("2005/6/01")._verify_date_path()
+        self.generate("2005/01/31")._verify_date_path()
 
     def test_get_symlink_target(self):
         all_commits = list(self.repofs._git.all_commits())
