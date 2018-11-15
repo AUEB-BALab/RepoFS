@@ -40,7 +40,7 @@ class CommitDateHandlerTest(TestCase):
         return CommitDateHandler(path, oper)
 
     def test_is_dir(self):
-        recent_commit = '2009/10/11/' + self.repofs._git.commits_by_date(2009, 10, 11)[0]
+        recent_commit = '2009/10/11/' + list(self.repofs._git.commits_by_date(2009, 10, 11))[0]
 
         self.assertTrue(self.generate("").is_dir())
         self.assertTrue(self.generate("2005").is_dir())
@@ -91,14 +91,14 @@ class CommitDateHandlerTest(TestCase):
         self.assertEqual(len(self.generate("").readdir()), 5)
         self.assertEqual(len(self.generate("2005").readdir()), 12)
         self.assertEqual(len(self.generate("2005/6").readdir()), 30)
-        self.assertEqual(len(self.generate("2005/6/7").readdir()), 1)
-        self.assertEqual(len(self.generate("2005/6/6").readdir()), 0)
-        self.assertEqual(len(self.generate("2005/6/8").readdir()), 0)
-        self.assertEqual(len(self.generate("2005/6/29").readdir()), 0)
-        self.assertEqual(len(self.generate("2005/6/30").readdir()), 1)
-        self.assertEqual(len(self.generate("2005/7/1").readdir()), 2)
-        self.assertEqual(len(self.generate("2009/10/11").readdir()), 2)
-        self.assertEqual(len(self.generate("2005/6/30").readdir()[0]), 40)
+        self.assertEqual(len(list(self.generate("2005/6/7").readdir())), 1)
+        self.assertEqual(len(list(self.generate("2005/6/6").readdir())), 0)
+        self.assertEqual(len(list(self.generate("2005/6/8").readdir())), 0)
+        self.assertEqual(len(list(self.generate("2005/6/29").readdir())), 0)
+        self.assertEqual(len(list(self.generate("2005/6/30").readdir())), 1)
+        self.assertEqual(len(list(self.generate("2005/7/1").readdir())), 2)
+        self.assertEqual(len(list(self.generate("2009/10/11").readdir())), 2)
+        self.assertEqual(len(list(self.generate("2005/6/30").readdir())[0]), 40)
 
     def test_days_per_month(self):
         self.assertEqual(self.generate("2017")._days_per_month(2017),
@@ -142,7 +142,7 @@ class CommitDateHandlerTest(TestCase):
 
         recent_commit = '2009/10/11/' + last_commit
         self.assertEqual(self.generate(recent_commit + "/.git-parents/" + pre_last_commit).get_symlink_target(), pre_last_commit)
-        link_commit = "2007/01/15/" + self.repofs._git.commits_by_date(2007, 01, 15)[0]
+        link_commit = "2007/01/15/" + list(self.repofs._git.commits_by_date(2007, 01, 15))[0]
         self.assertEqual(self.generate(link_commit + "/link_a").get_symlink_target(), link_commit + "/file_a")
 
 

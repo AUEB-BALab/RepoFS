@@ -149,6 +149,9 @@ class GitOperations(object):
                 '--format=%(objectname) %(refname)'] + refs).splitlines()
         return [ref.strip() for ref in refs]
 
+    def _get_commits_iterator(self, command):
+        return StringIO.StringIO(self.cached_command(command))
+
     def commits_by_date(self, y, m, d):
         """
         Returns a list of commit hashes for the given year, month, day
@@ -156,27 +159,26 @@ class GitOperations(object):
         start = datetime.date(y, m, d)
         end = start + datetime.timedelta(days=1)
         # T00:00:00 is at the start of the specified day
-        commits = self.cached_command(['log',
-                                       '--after',
-                                       '%04d-%02d-%02dT00:00:00' % (start.year,
-                                                           start.month,
-                                                           start.day),
-                                       '--before',
-                                       '%04d-%02d-%02dT00:00:00' % (end.year,
-                                                           end.month,
-                                                           end.day),
-                                       '--all', '--pretty=%H']).splitlines()
-        commits = [commit.strip() for commit in commits]
-        return commits
-
-    def _get_commits_iterator(self):
-        return StringIO.StringIO(self.cached_command(['log', '--all', '--pretty=%H']))
+        command = ['log',
+                       '--after',
+                       '%04d-%02d-%02dT00:00:00' % (start.year,
+                                           start.month,
+                                           start.day),
+                       '--before',
+                       '%04d-%02d-%02dT00:00:00' % (end.year,
+                                           end.month,
+                                           end.day),
+                       '--all', '--pretty=%H']
+        commits = self._get_commits_iterator(command)
+        for commit in commits:
+            yield commit.strip()
 
     def all_commits(self, prefix=""):
         """
         Returns a list of all commit hashes
         """
-        commits = self._get_commits_iterator()
+        command = ['log', '--all', '--pretty=%H']
+        commits = self._get_commits_iterator(command)
 
         if prefix:
             commits = iter([c for c in commits if c.startswith(prefix)])

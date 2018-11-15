@@ -35,7 +35,7 @@ class RefHandlerTest(TestCase):
             if e.errno != errno.EEXIST:
                 raise e
         self.repofs_nosym = RepoFS('test_repo', self.mount, False, True)
-        rcommit = self.repofs_nosym._git.commits_by_date(2009, 10, 11)[0]
+        rcommit = list(self.repofs_nosym._git.commits_by_date(2009, 10, 11))[0]
         self.recent_commit_by_hash = '/commits-by-hash/' + rcommit
 
     def generate(self, path, refs, no_ref_sym):

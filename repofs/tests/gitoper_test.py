@@ -44,8 +44,8 @@ class GitOperationsTestCase(TestCase):
         self.assertEquals(self.go.years, [2005, 2006, 2007, 2008, 2009])
 
     def test_commits_by_date(self):
-        self.assertEquals(len(self.go.commits_by_date(2009,10,11)), 2)
-        self.assertEquals(len(self.go.commits_by_date(2009,10,12)), 0)
+        self.assertEquals(len(list(self.go.commits_by_date(2009,10,11))), 2)
+        self.assertEquals(len(list(self.go.commits_by_date(2009,10,12))), 0)
 
     def test_all_commits(self):
         self.assertGreater(len(list(self.go.all_commits())), 3)
