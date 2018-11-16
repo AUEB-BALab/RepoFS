@@ -104,6 +104,9 @@ class GitOperationsTestCase(TestCase):
     def test_commit_time(self):
         self.assertEqual("2009-10-11", datetime.datetime.fromtimestamp(self.go.get_commit_time(self.master_hash)).strftime("%Y-%m-%d"))
 
+    def test_author_time(self):
+        self.assertEqual("2009-10-11", datetime.datetime.fromtimestamp(self.go.get_author_time(self.master_hash)).strftime("%Y-%m-%d"))
+
     def test_is_symlink(self):
         commit = self.go.commit_of_ref("refs/tags/t20070115la").split("/")[-1]
         self.assertTrue(self.go.is_symlink(commit, "link_a"))

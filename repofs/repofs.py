@@ -77,6 +77,9 @@ class RepoFS(Operations):
     def get_commit_time(self, commit):
         return self._git.get_commit_time(commit)
 
+    def get_author_time(self, commit):
+        return self._git.get_author_time(commit)
+
     def _get_handler(self, path):
         if path == "/":
             return RootHandler()
@@ -113,11 +116,16 @@ class RepoFS(Operations):
         st['st_atime'] = st['st_ctime'] = st['st_mtime'] = t
 
         commit_time = -1
+        author_time = -1
         if handler and hasattr(handler, "get_commit") and handler.get_commit():
+            author_time = self.get_author_time(handler.get_commit())
             commit_time = self.get_commit_time(handler.get_commit())
 
         if commit_time != -1:
-            st['st_ctime'] = st['st_mtime'] = commit_time
+            st['st_mtime'] = commit_time
+
+        if author_time != -1:
+            st['st_ctime'] = author_time
 
         return st
 

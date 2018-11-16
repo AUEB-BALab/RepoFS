@@ -233,6 +233,9 @@ class GitOperations(object):
     def get_commit_time(self, commit):
         return self._get_entry(commit).commit_time
 
+    def get_author_time(self, commit):
+        return self._get_entry(commit).author.time
+
     def directory_contents(self, commit, path):
         """
         Returns the contents of the directory
