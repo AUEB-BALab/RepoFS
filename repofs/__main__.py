@@ -41,6 +41,12 @@ def main():
         action="store_true",
         default=False
     )
+    parser.add_argument(
+        "--no-cache",
+        help="Do not use the cache",
+        action="store_true",
+        default=False
+    )
     args = parser.parse_args()
 
     if not os.path.exists(os.path.join(args.repo, '.git')):
@@ -52,7 +58,13 @@ def main():
 
     sys.stderr.write("Examining repository.  Please wait..\n")
     start = datetime.datetime.now()
-    repo = RepoFS(os.path.abspath(args.repo), os.path.abspath(args.mount), args.hash_trees, args.no_ref_symlinks)
+    repo = RepoFS(
+        repo=os.path.abspath(args.repo),
+        mount=os.path.abspath(args.mount),
+        hash_trees=args.hash_trees,
+        no_ref_symlinks=args.no_ref_symlinks,
+        no_cache=args.no_cache
+    )
     end = datetime.datetime.now()
     sys.stderr.write("Ready! Repository mounted in %s\n" % (end - start))
     sys.stderr.write("Repository %s is now visible at %s\n" % (args.repo,

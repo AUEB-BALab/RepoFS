@@ -26,7 +26,7 @@ from pygit2 import Repository, Commit, GIT_OBJ_TREE, GIT_FILEMODE_LINK
 
 
 class GitOperations(object):
-    def __init__(self, repo):
+    def __init__(self, repo, no_cache=False):
         self.repo = repo
         self._gitrepo = os.path.join(repo, '.git')
         self._pygit = Repository(repo)
@@ -36,6 +36,7 @@ class GitOperations(object):
         self._sizes = {}
         self._refs = {}
         self._commits_iterator = None
+        self.cache = not no_cache
         self.years = range(self._first_year(), self._last_year() + 1)
 
     def cached_command(self, list, return_exit_code=False, silent=False):
@@ -67,7 +68,8 @@ class GitOperations(object):
                     message = "Error calling %s: %s" % (command, str(e))
                     sys.stderr.write(message)
                     out = None
-            self._commands[command] = out
+            if self.cache:
+                self._commands[command] = out
             return out
 
     def _get_entry(self, commit, path=None, return_tree=False):

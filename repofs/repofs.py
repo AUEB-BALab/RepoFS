@@ -32,7 +32,7 @@ from handlers.root import RootHandler
 
 
 class RepoFS(Operations):
-    def __init__(self, repo, mount, hash_trees, no_ref_symlinks):
+    def __init__(self, repo, mount, hash_trees, no_ref_symlinks, no_cache):
         self.repo = repo
         self.repo_mode = os.stat(repo).st_mode
         self.no_ref_symlinks = no_ref_symlinks
@@ -40,7 +40,7 @@ class RepoFS(Operations):
         self.mnt_mode = self.repo_mode & ~S_IWUSR & ~S_IFDIR
         self.mount = mount
         self.hash_trees = hash_trees
-        self._git = GitOperations(repo)
+        self._git = GitOperations(repo, no_cache)
         self._branch_refs = ['refs/heads/', 'refs/remotes/']
         self._tag_refs = ['refs/tags']
 
