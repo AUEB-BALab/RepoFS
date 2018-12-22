@@ -15,7 +15,7 @@ def get_long_desc():
 def setup_package():
     setup(
         name='repofs',
-        version='0.2.3',
+        version='0.2.4',
         description='File system view of git repositories',
         long_description=get_long_desc(),
         url='https://github.com/AUEB-BALab/RepoFS',

@@ -7,7 +7,7 @@ Filesystem view of version control repositories
 Installation
 =======================
 
-We currently support only Debian based distributions \>= 9.3.
+We currently support only Debian Stretch.
 
 1. `apt-get install libffi-dev libgit2-dev fuse python-pip`
 2. `pip install repofs`
