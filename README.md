@@ -9,6 +9,9 @@ a virtual file system where all commits and their contents
 can be traversed concurrently in a read-only manner
 using shell commands.
 
+Read the complete description and methodology on
+[SoftwareX](https://www.sciencedirect.com/science/article/pii/S2352711018300712)
+
 Installation
 =======================
 
