@@ -14,7 +14,7 @@ def get_long_desc():
 def setup_package():
     setup(
         name='repofs',
-        version='0.2.4',
+        version='0.2.5',
         description='File system view of git repositories',
         long_description=get_long_desc(),
         long_description_content_type="text/markdown",
