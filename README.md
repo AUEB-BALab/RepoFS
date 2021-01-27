@@ -12,19 +12,24 @@ using shell commands.
 Read the complete description and methodology on
 [SoftwareX](https://www.sciencedirect.com/science/article/pii/S2352711018300712)
 
-Installation
-=======================
+# Installation
 
-We currently support only Debian Stretch.
 Simply install its dependencies and download
 RepoFS from the Python Package Index using pip.
 
+## Debian
 ```
 ~ ❯❯❯ sudo apt-get update
 
 ~ ❯❯❯ sudo apt-get install libffi-dev libgit2-dev fuse python-pip
 
-~ >>> sudo pip install repofs
+~ ❯❯❯ sudo pip install repofs
+```
+
+## OSx
+```
+~ ❯❯❯ brew install libgit2 fuse
+~ ❯❯❯ sudo pip install repofs
 ```
 
 Usage
