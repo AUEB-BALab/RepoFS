@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2017-2018 Vitalis Salis and Diomidis Spinellis
+# Copyright 2017-2021 Vitalis Salis and Diomidis Spinellis
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
