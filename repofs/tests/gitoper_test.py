@@ -19,6 +19,7 @@ import datetime
 
 from unittest import TestCase, main
 from repofs.gitoper import GitOperations, GitOperError
+from pygit2 import GIT_OBJ_TREE, GIT_OBJ_BLOB
 
 
 class GitOperationsTestCase(TestCase):
@@ -27,25 +28,25 @@ class GitOperationsTestCase(TestCase):
         self.master_hash = self.go.commit_of_ref("master").split("/")[-1]
 
     def test_cached_command(self):
-        self.assertEquals(self.go.cached_command(['show', 'master:file_r']),
+        self.assertEqual(self.go.cached_command(['show', 'master:file_r']),
                           "phantom\n")
         self.go.cached_command(['rm', 'file_r'])
         # Retrieve removed command from cache
-        self.assertEquals(self.go.cached_command(['show', 'master:file_r']),
+        self.assertEqual(self.go.cached_command(['show', 'master:file_r']),
                           "phantom\n")
 
     def test_first_year(self):
-        self.assertEquals(self.go._first_year(), 2005)
+        self.assertEqual(self.go._first_year(), 2005)
 
     def test_last_year(self):
-        self.assertEquals(self.go._last_year(), 2009)
+        self.assertEqual(self.go._last_year(), 2009)
 
     def test_years(self):
-        self.assertEquals(self.go.years, [2005, 2006, 2007, 2008, 2009])
+        self.assertEqual(list(self.go.years), [2005, 2006, 2007, 2008, 2009])
 
     def test_commits_by_date(self):
-        self.assertEquals(len(list(self.go.commits_by_date(2009,10,11))), 2)
-        self.assertEquals(len(list(self.go.commits_by_date(2009,10,12))), 0)
+        self.assertEqual(len(list(self.go.commits_by_date(2009,10,11))), 2)
+        self.assertEqual(len(list(self.go.commits_by_date(2009,10,12))), 0)
 
     def test_all_commits(self):
         self.assertGreater(len(list(self.go.all_commits())), 3)
@@ -55,7 +56,7 @@ class GitOperationsTestCase(TestCase):
         self.assertEqual(self.go.file_size(self.master_hash, "file_b"), 0)
 
     def test_file_contents(self):
-        self.assertEqual(self.go.file_contents(self.master_hash, "file_a"), "Contents\n")
+        self.assertEqual(self.go.file_contents(self.master_hash, "file_a"), b'Contents\n')
 
     def test_is_dir(self):
         self.assertTrue(self.go.is_dir(self.master_hash, "dir_a"))
@@ -82,8 +83,8 @@ class GitOperationsTestCase(TestCase):
 
     def test_fill_trees(self):
         dirs = ["dir_a", "dir_a/dir_b"]
-        trees = [(d, "tree") for d in dirs]
-        diff = [("file_a", "blob"), ("file_b", "dunno")]
+        trees = [(d, GIT_OBJ_TREE) for d in dirs]
+        diff = [("file_a", GIT_OBJ_BLOB), ("file_b", "dunno")]
 
         self.go._fill_trees(self.master_hash, trees + diff)
         self.assertEqual(self.go._trees[self.master_hash], set(dirs))
@@ -92,8 +93,8 @@ class GitOperationsTestCase(TestCase):
         self.assertEqual(self.go._trees[self.master_hash], set(dirs))
 
     def test_get_tree(self):
-        self.assertEqual(self.go._get_tree(self.master_hash, "dir_a"), [("dir_b", "tree"), ("file_aa", "blob")])
-        self.assertEqual(self.go._get_tree(self.master_hash, ""), [("dir_a", "tree")] + [("file_" + c, "blob") for c in "abcdr"] + [("link_a", "blob")])
+        self.assertEqual(self.go._get_tree(self.master_hash, "dir_a"), [("dir_b", GIT_OBJ_TREE), ("file_aa", GIT_OBJ_BLOB)])
+        self.assertEqual(self.go._get_tree(self.master_hash, ""), [("dir_a", GIT_OBJ_TREE)] + [("file_" + c, GIT_OBJ_BLOB) for c in "abcdr"] + [("link_a", GIT_OBJ_BLOB)])
 
     def test_cache_trees(self):
         self.go._cache_tree(self.master_hash, "dir_a")

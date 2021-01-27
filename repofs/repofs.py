@@ -24,11 +24,11 @@ from time import time
 from stat import S_IFDIR, S_IFREG, S_IFLNK, S_IWUSR
 from fuse import FUSE, FuseOSError, Operations, fuse_get_context
 
-from gitoper import GitOperations, GitOperError
-from handlers.ref import RefHandler
-from handlers.commit_hash import CommitHashHandler
-from handlers.commit_date import CommitDateHandler
-from handlers.root import RootHandler
+from repofs.gitoper import GitOperations, GitOperError
+from repofs.handlers.ref import RefHandler
+from repofs.handlers.commit_hash import CommitHashHandler
+from repofs.handlers.commit_date import CommitDateHandler
+from repofs.handlers.root import RootHandler
 
 
 class RepoFS(Operations):

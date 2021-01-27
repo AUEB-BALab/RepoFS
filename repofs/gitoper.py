@@ -19,7 +19,10 @@ import datetime
 import os
 import re
 import sys
-import StringIO
+try:
+    from StringIO import StringIO # Python 2
+except ImportError:
+    from io import StringIO # Python 3
 
 from subprocess import check_output, CalledProcessError, call
 from pygit2 import Repository, Commit, GIT_OBJ_TREE, GIT_FILEMODE_LINK
@@ -56,14 +59,14 @@ class GitOperations(object):
         else:
             try:
                 # print(command)
-                out = check_output(list)
+                out = check_output(list).decode('utf-8')
                 if return_exit_code:
                     out = True
             except CalledProcessError as e:
                 if return_exit_code:
                     out = False
-		elif silent:
-		    out = None
+                elif silent:
+                    out = None
                 else:
                     message = "Error calling %s: %s" % (command, str(e))
                     sys.stderr.write(message)
@@ -80,7 +83,7 @@ class GitOperations(object):
                 obj = self._pygit[commit].tree
             else:
                 obj = self._pygit[commit]
-        except KeyError as e:
+        except (KeyError, ValueError) as e:
             raise GitOperError("pygit entry does not exist\n%s" % (str(e)))
 
         if return_tree:
@@ -94,7 +97,7 @@ class GitOperations(object):
 
         trees = []
         for cont in contents:
-            if cont[1] == "tree" and cont[0] not in self._trees[commit]:
+            if cont[1] == GIT_OBJ_TREE and cont[0] not in self._trees[commit]:
                 trees.append(cont[0])
 
         self._trees[commit].update(trees)
@@ -152,7 +155,7 @@ class GitOperations(object):
         return [ref.strip() for ref in refs]
 
     def _get_commits_iterator(self, command):
-        return StringIO.StringIO(self.cached_command(command))
+        return StringIO(self.cached_command(command))
 
     def commits_by_date(self, y, m, d):
         """

@@ -89,7 +89,7 @@ class CommitHashHandler(CommitHandler):
         if self.is_metadata_symlink():
             return self.path_data['commit_path'].split("/")[-1]
 
-        target = self.oper.file_contents(self.path_data['commit'], self.path_data['commit_path'])
+        target = self.oper.file_contents(self.path_data['commit'], self.path_data['commit_path']).decode('utf-8')
         return os.path.join(self.path_data['htree_prefix'], self.path_data['commit'], target)
 
     def readdir(self):

@@ -19,9 +19,12 @@ import sys
 import os
 import argparse
 import datetime
+import fuse
 from fuse import FUSE
 
-from repofs import RepoFS
+fuse.fuse_python_api = (0, 1)
+
+from repofs.repofs import RepoFS
 
 def main():
     parser = argparse.ArgumentParser()

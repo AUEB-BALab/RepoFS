@@ -18,8 +18,13 @@
 import os
 
 from unittest import TestCase, main
-from os import mkdir, rmdir, errno, path
+from os import mkdir, rmdir, path
 from fuse import FuseOSError
+
+try:
+    from os import errno
+except ImportError:
+    import errno
 
 from repofs.repofs import RepoFS, RepoFSError
 from repofs.handlers.ref import RefHandler
@@ -89,25 +94,25 @@ class RepoFSTestCase(TestCase):
 
     def test_access_non_existent_dir(self):
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/foobar", None).next()
+            next(self.repofs.readdir("/foobar", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/tags/barfoo", None).next()
+            next(self.repofs.readdir("/tags/barfoo", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/branches/barfoo", None).next()
+            next(self.repofs.readdir("/branches/barfoo", None))
         with self.assertRaises(FuseOSError):
-            self.repofs_nosym.readdir("/branches/barfoo", None).next()
+            next(self.repofs_nosym.readdir("/branches/barfoo", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/commits-by-date/helloworld", None).next()
+            next(self.repofs.readdir("/commits-by-date/helloworld", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/commits-by-date/2005/helloworld", None).next()
+            next(self.repofs.readdir("/commits-by-date/2005/helloworld", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/commits-by-date/2005/6/helloworld", None).next()
+            next(self.repofs.readdir("/commits-by-date/2005/6/helloworld", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/commits-by-date/2005/6/7/helloworld", None).next()
+            next(self.repofs.readdir("/commits-by-date/2005/6/7/helloworld", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir(self.first_commit + "/dir_a/helloworld", None).next()
+            next(self.repofs.readdir(self.first_commit + "/dir_a/helloworld", None))
         with self.assertRaises(FuseOSError):
-            self.repofs.readdir("/commits-by-hash/helloworld", None).next()
+            next(self.repofs.readdir("/commits-by-hash/helloworld", None))
 
     def test_access_non_existent_file(self):
         with self.assertRaises(FuseOSError):

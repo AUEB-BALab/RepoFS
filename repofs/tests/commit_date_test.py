@@ -144,7 +144,7 @@ class CommitDateHandlerTest(TestCase):
 
         recent_commit = '2009/10/11/' + last_commit
         self.assertEqual(self.generate(recent_commit + "/.git-parents/" + pre_last_commit).get_symlink_target(), pre_last_commit)
-        link_commit = "2007/01/15/" + list(self.repofs._git.commits_by_date(2007, 01, 15))[0]
+        link_commit = "2007/01/15/" + list(self.repofs._git.commits_by_date(2007, 1, 15))[0]
         self.assertEqual(self.generate(link_commit + "/link_a").get_symlink_target(), link_commit + "/file_a")
 
 

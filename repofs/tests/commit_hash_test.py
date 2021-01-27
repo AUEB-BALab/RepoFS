@@ -103,7 +103,7 @@ class CommitHashHandlerTest(TestCase):
         self.assertEqual(len(list(self.generate("aa", True).readdir())), 256)
         self.assertEqual(len(list(self.generate("aa/bb", True).readdir())), 256)
         self.assertGreaterEqual(len(list(self.generate(self.to_hash_path(last_commit), True).readdir())), 1)
-        self.assertEqual(self.generate(self.to_hash_path(last_commit), True).readdir().next(), last_commit)
+        self.assertEqual(next(self.generate(self.to_hash_path(last_commit), True).readdir()), last_commit)
         self.assertEqual(self.generate(self.to_hash_path(last_commit) + "/" + last_commit, True).readdir(), contents_of_last + utils.metadata_names())
         self.assertEqual(self.generate(self.to_hash_path(last_commit) + "/" + last_commit + "/dir_a", True).readdir(), list(contents_of_last_dira))
 
@@ -119,7 +119,7 @@ class CommitHashHandlerTest(TestCase):
 
         self.assertEqual(self.generate(last_commit + "/.git-parents/" + pre_last_commit, False).get_symlink_target(), pre_last_commit)
         self.assertEqual(self.generate(self.to_hash_path(last_commit) + "/" + last_commit + "/.git-parents/" + pre_last_commit, True).get_symlink_target(), pre_last_commit)
-        link_commit = list(self.repofs_htree._git.commits_by_date(2007, 01, 15))[0]
+        link_commit = list(self.repofs_htree._git.commits_by_date(2007, 1, 15))[0]
         self.assertEqual(self.generate(link_commit + "/link_a", False).get_symlink_target(), link_commit + "/file_a")
         self.assertEqual(self.generate(self.to_hash_path(link_commit) + "/" + link_commit + "/link_a", True).get_symlink_target(), self.to_hash_path(link_commit) + "/" + link_commit + "/file_a")
 
