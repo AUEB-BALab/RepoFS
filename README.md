@@ -21,7 +21,7 @@ RepoFS from the Python Package Index using pip.
 ```
 ~ ❯❯❯ sudo apt-get update
 
-~ ❯❯❯ sudo apt-get install libffi-dev libgit2-dev fuse python-pip
+~ ❯❯❯ sudo apt-get install libffi-dev libgit2-dev=1.1.0 fuse python-pip
 
 ~ ❯❯❯ sudo pip install repofs
 ```
