@@ -26,16 +26,15 @@ RepoFS requires Python >= 3.6 and an installation of libgit2@1.1.0 and fuse.
 and install it from source, following the instructions outlined below.
 
 ## Debian & Ubuntu
-```
-~ ❯❯❯ sudo apt-get install libffi-dev libgit2-dev=1.1.0 fuse python-pip
-
-~ ❯❯❯ sudo pip install repofs
+```bash
+~ ❯❯❯ apt install libffi-dev libgit2-dev=1.1.0 fuse python3-pip
+~ ❯❯❯ pip3 install repofs
 ```
 
 ## OSx
-```
-~ ❯❯❯ brew install libgit2 fuse
-~ ❯❯❯ sudo pip install repofs
+```bash
+~ ❯❯❯ brew install libgit2 fuse python3
+~ ❯❯❯ pip3 install repofs
 ```
 
 ## Manual installation of libgit2
@@ -53,7 +52,7 @@ and install it from source, following the instructions outlined below.
 Usage
 =====
 
-```
+```bash
 ~ ❯❯❯ repofs -h
 usage: repofs [-h] [--hash-trees] [--no-ref-symlinks] [--no-cache] repo mount
 
@@ -77,7 +76,7 @@ The mount directory contains four directories:
 A commit directory will contain the state of the repository at the time the
 commit was made. Since this directory can get large you can further organize it
 using the `--hash-trees` command line parameter.
-```
+```bash
 ~ ❯❯❯ ls commits-by-hash
 06f3d110140b7ac97d000aace0ef4a4233512b6c  47d3af84ddb24690a76ffac32971313cbe500841
 082974029413f8c44a07912d1d581d26744fc994  491307a672a07f0354134953fd356998e07fef63
@@ -87,7 +86,7 @@ using the `--hash-trees` command line parameter.
 ```
 - `commits-by-date`: Directory containing all commits of the Git repository
   organized by the time of their creation.
-```
+```bash
 ~ ❯❯❯ ls commits-by-date
 2017    2018
 ~ ❯❯❯ ls commits-by-date/2017
@@ -106,7 +105,7 @@ using the `--hash-trees` command line parameter.
   option.
 - `branches`: Similar to the tags directory. Contains all branch names and
   further organizes them to remote branches and local branches.
-```
+```bash
 ~ ❯❯❯ ls branches
 heads  remotes
 ~ ❯❯❯ ls branches/remotes
