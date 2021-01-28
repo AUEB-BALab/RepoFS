@@ -12,15 +12,21 @@ using shell commands.
 Read the complete description and methodology on
 [SoftwareX](https://www.sciencedirect.com/science/article/pii/S2352711018300712)
 
+You can cite RepoFS as follows.
+Vitalis Salis and Diomidis Spinellis.
+RepoFS: File system view of Git repositories.
+SoftwareX, Volume 9, 2019, Pages 288-292, ISSN 2352-7110,
+https://doi.org/10.1016/j.softx.2019.03.007.
+
+
 # Installation
 
-Simply install its dependencies and download
-RepoFS from the Python Package Index using pip.
+RepoFS requires Python >= 3.6 and an installation of libgit2@1.1.0 and fuse.
+**Note**: If your vendor doesn't provide libgit2 v1.1.0 you can manually build
+and install it from source, following the instructions outlined below.
 
-## Debian
+## Debian & Ubuntu
 ```
-~ ❯❯❯ sudo apt-get update
-
 ~ ❯❯❯ sudo apt-get install libffi-dev libgit2-dev=1.1.0 fuse python-pip
 
 ~ ❯❯❯ sudo pip install repofs
@@ -30,6 +36,18 @@ RepoFS from the Python Package Index using pip.
 ```
 ~ ❯❯❯ brew install libgit2 fuse
 ~ ❯❯❯ sudo pip install repofs
+```
+
+## Manual installation of libgit2
+
+```bash
+~ ❯❯❯ wget https://github.com/libgit2/libgit2/archive/v1.1.0.tar.gz
+~ ❯❯❯ tar xzf v1.1.0.tar.gz
+~ ❯❯❯ cd libgit2-1.1.0/
+~ ❯❯❯ cmake .
+~ ❯❯❯ make
+~ ❯❯❯ sudo make install
+~ ❯❯❯ sudo ldconfig
 ```
 
 Usage
@@ -101,3 +119,4 @@ Run `man repofs` after installation for a complete explanation of RepoFS'
 usage.
 
 To unmount a Git repository from a specific mount point run `umount <mount_dir>`.
+
