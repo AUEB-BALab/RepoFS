@@ -31,6 +31,14 @@ and install it from source, following the instructions outlined below.
 ~ ❯❯❯ pip3 install repofs
 ```
 
+## Arch Linux
+Available in the AUR: https://aur.archlinux.org/packages/repofs-git/.
+
+Using `pacaur`:
+```bash
+~ ❯❯❯ pacaur -S repofs-git
+```
+
 ## OSx
 ```bash
 ~ ❯❯❯ brew install libgit2 fuse python3
