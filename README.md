@@ -65,13 +65,13 @@ Usage
 usage: repofs [-h] [--hash-trees] [--no-ref-symlinks] [--no-cache] repo mount
 
 positional arguments:
-  repo               Git repository to be processed.
-  mount              Path where the FileSystem will be mounted.If it doesn't
-                     exist it is created and if it exists and contains files
-                     RepoFS exits.
+  uri               URI of the Git repository to be processed.
 
 optional arguments:
   -h, --help         show this help message and exit
+  --git-path         Path where the Git repository will be cloned.
+  --mount-path       Path where the file system will be mounted
+  --foreground       Allow to execute the tool in foreground mode.
   --hash-trees       Store 256 entries (first two digits) at each levelof
                      commits-by-hash for the first three levels.
   --no-ref-symlinks  Do not create symlinks for commits of refs.
