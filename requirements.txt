@@ -1,0 +1,2 @@
+fusepy
+pygit2
